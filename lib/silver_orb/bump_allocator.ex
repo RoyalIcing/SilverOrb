@@ -1,4 +1,16 @@
 defmodule SilverOrb.BumpAllocator do
+  @moduledoc """
+  A bump allocator for Orb modules.
+
+  ```elixir
+  defmodule Example do
+    use Orb
+    use SilverOrb.BumpAllocator
+
+  end
+  ```
+  """
+
   defmodule Constants do
     @page_size 64 * 1024
     @bump_start 1 * @page_size

@@ -1,15 +1,23 @@
 defmodule SilverOrb.Mem do
+  @moduledoc """
+  memcpy and memset for Orb.
+
+  ```elixir
+  defmodule Example do
+    use Orb
+    use SilverOrb.Mem
+
+  end
+  ```
+  """
+
   use Orb
 
   defmacro __using__(_opts) do
     quote do
-      # @wasm_memory 1
-
       import Orb
 
       wasm do
-        # unquote(__MODULE__).funcp(:memcpy)
-        # unquote(__MODULE__).funcp(:memset)
         unquote(__MODULE__).funcp()
       end
 
