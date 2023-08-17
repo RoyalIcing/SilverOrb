@@ -29,9 +29,9 @@ defmodule MemTest do
     memset = Instance.capture(inst, :memset, 3)
 
     memset.(0xA00, ?z, 3)
-    assert Instance.read_memory(inst, 0xA00, 4) == "zzz\0"
+    assert Instance.read_memory(inst, 0xA00 - 1, 6) == "\0zzz\0\0"
 
     memset.(0xB00, ?z, 0)
-    assert Instance.read_memory(inst, 0xB00, 4) == "\0\0\0\0"
+    assert Instance.read_memory(inst, 0xB00 - 1, 4) == "\0\0\0\0"
   end
 end
