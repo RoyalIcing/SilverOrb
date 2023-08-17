@@ -68,9 +68,7 @@ defmodule SilverOrb.BumpAllocator do
       #   @bump_offset = I32.add(@bump_offset, size)
       # end
     end
-    # |> export("alloc")
-
-    func(alloc(size: I32), I32, do: typed_call(:i32, :bump_alloc, [size]))
+    |> export("alloc")
 
     func free_all() do
       @bump_offset = Constants.bump_init_offset()

@@ -10,7 +10,7 @@ defmodule BumpAllocatorTest do
 
   test "wasm size" do
     wasm = Wasm.to_wasm(BumpAllocator)
-    assert byte_size(wasm) == 107
+    assert byte_size(wasm) == 99
   end
 
   test "single allocation" do
