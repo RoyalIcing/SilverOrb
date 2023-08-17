@@ -1,13 +1,23 @@
 defmodule SilverOrb.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/RoyalIcing/SilverOrb"
+
   def project do
     [
       app: :silver_orb,
       version: "0.0.1",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      description: "Standard Library for Orb",
+      package: package(),
+
+      # Docs
+      name: "SilverOrb",
+      docs: docs(),
+      source_url: @source_url,
+      homepage_url: "https://calculated.world/orb"
     ]
   end
 
@@ -22,7 +32,29 @@ defmodule SilverOrb.MixProject do
   defp deps do
     [
       {:orb, "~> 0.0.13"},
-      {:orb_wasmtime, "~> 0.1.10", only: :test}
+      {:orb_wasmtime, "~> 0.1.10", only: :test},
+      {:ex_doc, "~> 0.27", only: :dev, runtime: false}
+    ]
+  end
+
+  defp package do
+    [
+      name: :orb,
+      maintainers: ["Patrick George Wyndham Smith"],
+      licenses: ["BSD-3-Clause"],
+      links: %{"GitHub" => @source_url}
+    ]
+  end
+
+  defp docs do
+    [
+      # The main page in the docs
+      main: "SilverOrb",
+      # logo: "orb-logo-orange.svg",
+      extras: [
+        "README.md",
+        # "guides/01-intro.livemd"
+      ]
     ]
   end
 end
