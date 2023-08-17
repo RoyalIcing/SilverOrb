@@ -39,7 +39,7 @@ defmodule SilverOrb.MixProject do
 
   defp package do
     [
-      name: :orb,
+      name: :silver_orb,
       maintainers: ["Patrick George Wyndham Smith"],
       licenses: ["BSD-3-Clause"],
       links: %{"GitHub" => @source_url}
