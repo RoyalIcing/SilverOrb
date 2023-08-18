@@ -10,7 +10,7 @@ by adding `silver_orb` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:silver_orb, "~> 0.0.1"}
+    {:silver_orb, "~> 0.0.2"}
   ]
 end
 ```

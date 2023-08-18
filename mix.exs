@@ -6,7 +6,7 @@ defmodule SilverOrb.MixProject do
   def project do
     [
       app: :silver_orb,
-      version: "0.0.1",
+      version: "0.0.2",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
