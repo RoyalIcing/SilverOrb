@@ -52,7 +52,8 @@ defmodule SilverOrb.BumpAllocator do
   defmacro export_alloc() do
     quote do
       Orb.wasm do
-        unquote(__MODULE__)._func(:alloc)
+        # unquote(__MODULE__)._func(:alloc)
+        Orb.DSL.raw_wat("(export \"alloc\" (func $bump_alloc))")
         unquote(__MODULE__)._func(:free_all)
       end
     end

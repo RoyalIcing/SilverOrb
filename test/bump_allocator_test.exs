@@ -30,4 +30,17 @@ defmodule BumpAllocatorTest do
     assert alloc.(0x10) == 0x10010
     assert alloc.(0x10) == 0x10020
   end
+
+  describe "user" do
+    defmodule Example do
+      use Orb
+      use SilverOrb.BumpAllocator
+
+      BumpAllocator.export_alloc()
+    end
+
+    test "compiles" do
+      Instance.run(Example)
+    end
+  end
 end
