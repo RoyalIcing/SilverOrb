@@ -95,14 +95,14 @@ defmodule SilverOrb.Mem do
   end
 
   def memcpy(dest, src, byte_count) do
-    Orb.DSL.call(:memcpy, dest, src, byte_count)
+    Orb.DSL.typed_call(I32, :memcpy, [dest, src, byte_count])
   end
 
   def memcpy(dest: dest, src: src, byte_count: byte_count) do
-    Orb.DSL.call(:memcpy, dest, src, byte_count)
+    Orb.DSL.typed_call(I32, :memcpy, [dest, src, byte_count])
   end
 
   def memset(dest: dest, u8: u8, byte_count: byte_count) do
-    Orb.DSL.call(:memset, dest, u8, byte_count)
+    Orb.DSL.typed_call(I32, :memset, [dest, u8, byte_count])
   end
 end
