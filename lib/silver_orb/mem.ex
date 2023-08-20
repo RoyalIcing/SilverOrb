@@ -27,6 +27,20 @@ defmodule SilverOrb.Mem do
 
   Memory.pages(2)
 
+  # defw memset(dest: I32.U8.UnsafePointer, u8: I32.U8, byte_count: I32),
+  #   i: I32 do
+  #   loop EachByte do
+  #     return(if: I32.eq(i, byte_count))
+
+  #     dest[at!: i] = u8
+
+  #     i = i + 1
+  #     EachByte.continue()
+  #   end
+  # end
+
+  # export alloc, from: BumpAllocator, as: :bump_alloc
+
   wasm U32 do
     func memcpy(dest: I32.U8.UnsafePointer, src: I32.U8.UnsafePointer, byte_count: I32),
       i: I32 do

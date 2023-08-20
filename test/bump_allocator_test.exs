@@ -41,6 +41,45 @@ defmodule BumpAllocatorTest do
 
     test "compiles" do
       Instance.run(Example)
+
+      # assert Example.__wasm_global_type__(:bump_mark) == :i32
+    end
+  end
+
+  describe "nested user" do
+    defmodule A do
+      use Orb
+      use SilverOrb.BumpAllocator
+
+      wasm do
+        func inner_magic(), I32 do
+          42 + @bump_offset
+        end
+      end
+    end
+
+    defmodule B do
+      use Orb
+      use SilverOrb.BumpAllocator
+
+      wasm do
+        A.funcp()
+
+        func magic(), I32 do
+          typed_call(I32, :inner_magic, [])
+        end
+      end
+
+      BumpAllocator.export_alloc()
+    end
+
+    test "compiles" do
+      i = Instance.run(B)
+      Instance.call(i, :alloc, 4)
+      assert Instance.call(i, :magic) === 65582
+
+      # assert A.__wasm_global_type__(:bump_mark) == :i32
+      # assert B.__wasm_global_type__(:bump_mark) == :i32
     end
   end
 end
