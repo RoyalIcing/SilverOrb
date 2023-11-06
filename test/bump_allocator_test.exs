@@ -1,8 +1,8 @@
 defmodule BumpAllocatorTest do
   use ExUnit.Case, async: true
 
-  alias OrbWasmtime.{Instance, Wasm}
   alias SilverOrb.BumpAllocator
+  alias OrbWasmtime.{Instance, Wasm}
 
   test "compiles" do
     Instance.run(BumpAllocator)
