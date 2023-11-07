@@ -1,6 +1,14 @@
 # SilverOrb
 
-**TODO: Add description**
+A standard library for Orb.
+
+- Arena allocator
+- Memory copying and setting
+- Coming: String builder
+- Coming: ASCII functions
+- Coming: UTF8 functions
+- Coming: Integer formatting
+- Coming: Date formatting
 
 ## Installation
 
@@ -10,7 +18,7 @@ by adding `silver_orb` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:silver_orb, "~> 0.0.3"}
+    {:silver_orb, "~> 0.0.4"}
   ]
 end
 ```
