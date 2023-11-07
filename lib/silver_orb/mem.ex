@@ -42,6 +42,7 @@ defmodule SilverOrb.Mem do
   # export alloc, from: BumpAllocator, as: :bump_alloc
 
   wasm U32 do
+    # TODO: we want aligned memory so we can copy I64 by I64 at a time.
     func memcpy(dest: I32.U8.UnsafePointer, src: I32.U8.UnsafePointer, byte_count: I32),
       i: I32 do
       loop EachByte do
