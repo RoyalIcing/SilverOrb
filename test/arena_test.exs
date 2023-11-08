@@ -10,6 +10,7 @@ defmodule SilverOrb.ArenaTest do
 
     Arena.def(First, pages: 2)
     Arena.def(Second, pages: 3)
+    Arena.def(Third, pages: 3, max_pages: 5)
 
     defw test(), {I32, I32, I32, I32} do
       First.alloc(16)
@@ -38,23 +39,49 @@ defmodule SilverOrb.ArenaTest do
         AllocManyTimes.continue(if: i <= 2 * 64 * 1024 / 16)
       end
     end
+
+    defw within_max_pages(), I32 do
+      _ = Third.alloc(64 * 1024)
+      _ = Third.alloc(64 * 1024)
+      _ = Third.alloc(64 * 1024)
+      _ = Third.alloc(64 * 1024)
+      Third.alloc(64 * 1024)
+    end
+
+    defw over_max_pages() do
+      _ = Third.alloc(64 * 1024)
+      _ = Third.alloc(64 * 1024)
+      _ = Third.alloc(64 * 1024)
+      _ = Third.alloc(64 * 1024)
+      _ = Third.alloc(64 * 1024)
+      _ = Third.alloc(64 * 1024)
+    end
+
+    defw memory_page_count(), I32 do
+      Memory.size()
+    end
+  end
+
+  test "allocates correct amount of memory" do
+    assert A.to_wat() =~ ~S|(memory (export "memory") 8)|
+  end
+
+  test "declares globals for each bump offset" do
+    assert A.to_wat() =~ ~S"""
+             (global $SilverOrb.ArenaTest.A.First.bump_offset (mut i32) (i32.const 0))
+             (global $SilverOrb.ArenaTest.A.Second.bump_offset (mut i32) (i32.const 131072))
+             (global $SilverOrb.ArenaTest.A.Third.bump_offset (mut i32) (i32.const 327680))
+           """
   end
 
   test "add func prefixes" do
-    assert A.to_wat() =~ ~S"""
-           (module $A
-             (memory (export "memory") 5)
-             (global $SilverOrb.ArenaTest.A.First.bump_offset (mut i32) (i32.const 0))
-             (global $SilverOrb.ArenaTest.A.Second.bump_offset (mut i32) (i32.const 131072))
-           """
-
     assert A.to_wat() =~ ~S"""
              (func $SilverOrb.ArenaTest.A.First.alloc (param $byte_count i32) (result i32)
            """
 
     assert A.to_wat() =~ ~s"""
              (func $SilverOrb.ArenaTest.A.First.rewind
-               (i32.const #{0 * Orb.Memory.page_byte_size()})
+               (i32.const 0)
                (global.set $SilverOrb.ArenaTest.A.First.bump_offset)
            """
 
@@ -91,6 +118,32 @@ defmodule SilverOrb.ArenaTest do
   test "too many allocations" do
     i = Instance.run(A)
     f = Instance.capture(i, :too_many, 0)
+    assert {:error, _} = f.()
+  end
+
+  test "within max pages" do
+    i = Instance.run(A)
+    f = Instance.capture(i, :within_max_pages, 0)
+    memory_page_count = Instance.capture(i, :memory_page_count, 0)
+    assert 8 = A.Third.Values.end_page_offset()
+    assert 10 = A.Third.Values.max_end_page_offset()
+    assert 8 = memory_page_count.()
+    assert 589_824 = f.()
+    assert 589_824 = 9 * 64 * 1024
+    assert 10 = memory_page_count.()
+
+    assert {} = Instance.write_i32(i, 6 * 64 * 1024, 0x12345678)
+    assert {} = Instance.write_i32(i, 8 * 64 * 1024, 0x12345678)
+    assert {} = Instance.write_i32(i, 9 * 64 * 1024, 0x1234)
+    assert {} = Instance.write_i32(i, 10 * 64 * 1024 - 4, 0x12345678)
+    assert {:error, _} = Instance.write_i32(i, 10 * 64 * 1024 - 3, 0x12345678)
+    assert {:error, _} = Instance.write_i32(i, 10 * 64 * 1024, 0x12345678)
+    assert {:error, _} = Instance.write_i32(i, 13 * 64 * 1024, 0x12345678)
+  end
+
+  test "over max pages" do
+    i = Instance.run(A)
+    f = Instance.capture(i, :over_max_pages, 0)
     assert {:error, _} = f.()
   end
 end
