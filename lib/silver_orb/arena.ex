@@ -110,11 +110,20 @@ defmodule SilverOrb.Arena do
 
           set_func_prefix(inspect(__MODULE__))
 
-          # https://man7.org/linux/man-pages/man3/alloca.3.html
+          @doc """
+          Allocates memory into this arena. Traps if there is not enough free space.
+
+          See also: https://man7.org/linux/man-pages/man3/alloca.3.html
+          """
           defw alloc!(byte_count: I32), I32.UnsafePointer, new_ptr: I32.UnsafePointer do
             SilverOrb.Arena.alloc_impl(Values, Instruction.local_get(I32, :byte_count))
           end
 
+          @doc """
+          Rewinds this arena back to the beginning, effectively “freeing” everything that was previously allocated.
+
+          Note: The memory is not zeroed out.
+          """
           defw rewind() do
             SilverOrb.Arena.rewind_impl(Values)
           end
