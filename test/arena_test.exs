@@ -12,6 +12,18 @@ defmodule SilverOrb.ArenaTest do
     Arena.def(Second, pages: 3)
     Arena.def(Third, pages: 3, max_pages: 5)
 
+    defw example(), a: I32.UnsafePointer, b: I32.UnsafePointer do
+      a = First.alloc(4)
+      Memory.store!(I32, a, 42)
+
+      b = Second.alloc(4)
+      Memory.store!(I32, b, 99)
+
+      assert!(a !== First.alloc(4))
+      First.rewind()
+      assert!(a === First.alloc(4))
+    end
+
     defw test(), {I32, I32, I32, I32} do
       First.alloc(16)
       First.alloc(16)
@@ -100,6 +112,13 @@ defmodule SilverOrb.ArenaTest do
                (call $SilverOrb.ArenaTest.A.First.alloc (i32.const 16))
              )
            """
+  end
+
+  test "documented example works" do
+    # IO.puts(A.to_wat())
+    i = Instance.run(A)
+    f = Instance.capture(i, :example, 0)
+    assert f.() === nil
   end
 
   test "allocates separate memory offsets" do

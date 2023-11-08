@@ -1,5 +1,28 @@
 defmodule SilverOrb.Arena do
-  # See https://www.rfleury.com/p/untangling-lifetimes-the-arena-allocator
+  @moduledoc """
+  Arena allocation.
+
+  See https://www.rfleury.com/p/untangling-lifetimes-the-arena-allocator
+
+  ```elixir
+  defmodule ArenaExample do
+    SilverOrb.Arena.def(First, pages: 2)
+    SilverOrb.Arena.def(Second, pages: 4, max_pages: 10)
+
+    defw example(), a: I32.UnsafePointer, b: I32.UnsafePointer do
+      a = First.alloc(4)
+      Memory.store!(I32, a, 42)
+
+      b = Second.alloc(4)
+      Memory.store!(I32, b, 99)
+
+      assert!(a !== First.alloc(4))
+      First.rewind()
+      assert!(a === First.alloc(4))
+    end
+  end
+  ```
+  """
 
   use Orb
 
@@ -39,6 +62,16 @@ defmodule SilverOrb.Arena do
     end
   end
 
+  @doc """
+  Defines an arena of memory. An Elixir module with your passed `name` is defined with `alloc/1` and `rewind/0` functions.
+
+  ## Options
+
+  When defining an arena, two options can be given:
+
+  - `:pages` — The number of pages to allocate for this arena. The global memory is increased by this count.
+  - `:max_pages` — The maxmimum number of pages this can increase the global memory by using `Orb.Memory.grow!/1`. Only the last arena can support `max_pages`, as otherwise multiple arenas each growing in size will end up overlapping.
+  """
   defmacro def(name, opts) do
     quote do
       require Orb.Memory
