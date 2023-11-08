@@ -1,12 +1,11 @@
 defmodule SilverOrb.ArenaTest do
   use ExUnit.Case, async: true
 
-  alias SilverOrb.Arena
   alias OrbWasmtime.Instance
 
   defmodule A do
     use Orb
-    require Arena
+    require alias SilverOrb.Arena
 
     Arena.def(First, pages: 2)
     Arena.def(Second, pages: 3)
