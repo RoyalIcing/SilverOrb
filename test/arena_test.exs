@@ -25,6 +25,13 @@ defmodule SilverOrb.ArenaTest do
     end
 
     defw test(), {I32, I32, I32, I32} do
+      # First.stack do
+      #   a = 16
+      #   b = 45
+
+      #   other_function(a)
+      # end
+
       First.alloc!(16)
       First.alloc!(16)
       Second.alloc!(16)
