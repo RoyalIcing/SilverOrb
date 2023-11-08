@@ -28,6 +28,7 @@ defmodule SilverOrb.Arena do
 
   alias Orb.Instruction
 
+  @doc false
   def alloc_impl(values_mod, byte_count) do
     offset_global_name = values_mod.offset_global_name()
     max_end_page_offset = values_mod.max_end_page_offset()
@@ -49,6 +50,7 @@ defmodule SilverOrb.Arena do
     end
   end
 
+  @doc false
   def rewind_impl(values_mod) do
     offset_global_name = values_mod.offset_global_name()
     start_page_offset = values_mod.start_page_offset()
