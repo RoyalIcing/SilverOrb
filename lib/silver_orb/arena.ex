@@ -63,7 +63,7 @@ defmodule SilverOrb.Arena do
   end
 
   @doc """
-  Defines an arena of memory. An Elixir module with your passed `name` is defined with `alloc/1` and `rewind/0` functions.
+  Defines an arena of memory. An Elixir module with your passed `name` is defined with `alloc!/1` and `rewind/0` functions.
 
   ## Options
 
@@ -111,7 +111,7 @@ defmodule SilverOrb.Arena do
           set_func_prefix(inspect(__MODULE__))
 
           # https://man7.org/linux/man-pages/man3/alloca.3.html
-          defw alloc(byte_count: I32), I32.UnsafePointer, new_ptr: I32.UnsafePointer do
+          defw alloc!(byte_count: I32), I32.UnsafePointer, new_ptr: I32.UnsafePointer do
             SilverOrb.Arena.alloc_impl(Values, Instruction.local_get(I32, :byte_count))
           end
 

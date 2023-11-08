@@ -13,28 +13,28 @@ defmodule SilverOrb.ArenaTest do
     Arena.def(Third, pages: 3, max_pages: 5)
 
     defw example(), a: I32.UnsafePointer, b: I32.UnsafePointer do
-      a = First.alloc(4)
+      a = First.alloc!(4)
       Memory.store!(I32, a, 42)
 
-      b = Second.alloc(4)
+      b = Second.alloc!(4)
       Memory.store!(I32, b, 99)
 
-      assert!(a !== First.alloc(4))
+      assert!(a !== First.alloc!(4))
       First.rewind()
-      assert!(a === First.alloc(4))
+      assert!(a === First.alloc!(4))
     end
 
     defw test(), {I32, I32, I32, I32} do
-      First.alloc(16)
-      First.alloc(16)
-      Second.alloc(16)
+      First.alloc!(16)
+      First.alloc!(16)
+      Second.alloc!(16)
       First.rewind()
-      First.alloc(16)
+      First.alloc!(16)
     end
 
     defw just_enough(), I32, i: I32, final: I32 do
       loop AllocManyTimes do
-        final = First.alloc(16)
+        final = First.alloc!(16)
 
         i = i + 1
         AllocManyTimes.continue(if: i < 2 * 64 * 1024 / 16)
@@ -45,7 +45,7 @@ defmodule SilverOrb.ArenaTest do
 
     defw too_many(), i: I32 do
       loop AllocManyTimes do
-        _ = First.alloc(16)
+        _ = First.alloc!(16)
 
         i = i + 1
         AllocManyTimes.continue(if: i <= 2 * 64 * 1024 / 16)
@@ -53,20 +53,20 @@ defmodule SilverOrb.ArenaTest do
     end
 
     defw within_max_pages(), I32 do
-      _ = Third.alloc(64 * 1024)
-      _ = Third.alloc(64 * 1024)
-      _ = Third.alloc(64 * 1024)
-      _ = Third.alloc(64 * 1024)
-      Third.alloc(64 * 1024)
+      _ = Third.alloc!(64 * 1024)
+      _ = Third.alloc!(64 * 1024)
+      _ = Third.alloc!(64 * 1024)
+      _ = Third.alloc!(64 * 1024)
+      Third.alloc!(64 * 1024)
     end
 
     defw over_max_pages() do
-      _ = Third.alloc(64 * 1024)
-      _ = Third.alloc(64 * 1024)
-      _ = Third.alloc(64 * 1024)
-      _ = Third.alloc(64 * 1024)
-      _ = Third.alloc(64 * 1024)
-      _ = Third.alloc(64 * 1024)
+      _ = Third.alloc!(64 * 1024)
+      _ = Third.alloc!(64 * 1024)
+      _ = Third.alloc!(64 * 1024)
+      _ = Third.alloc!(64 * 1024)
+      _ = Third.alloc!(64 * 1024)
+      _ = Third.alloc!(64 * 1024)
     end
 
     defw memory_page_count(), I32 do
@@ -88,7 +88,7 @@ defmodule SilverOrb.ArenaTest do
 
   test "add func prefixes" do
     assert A.to_wat() =~ ~S"""
-             (func $SilverOrb.ArenaTest.A.First.alloc (param $byte_count i32) (result i32)
+             (func $SilverOrb.ArenaTest.A.First.alloc! (param $byte_count i32) (result i32)
            """
 
     assert A.to_wat() =~ ~s"""
@@ -105,11 +105,11 @@ defmodule SilverOrb.ArenaTest do
 
     assert A.to_wat() =~ ~S"""
              (func $test (export "test") (result i32 i32 i32 i32)
-               (call $SilverOrb.ArenaTest.A.First.alloc (i32.const 16))
-               (call $SilverOrb.ArenaTest.A.First.alloc (i32.const 16))
-               (call $SilverOrb.ArenaTest.A.Second.alloc (i32.const 16))
+               (call $SilverOrb.ArenaTest.A.First.alloc! (i32.const 16))
+               (call $SilverOrb.ArenaTest.A.First.alloc! (i32.const 16))
+               (call $SilverOrb.ArenaTest.A.Second.alloc! (i32.const 16))
                (call $SilverOrb.ArenaTest.A.First.rewind)
-               (call $SilverOrb.ArenaTest.A.First.alloc (i32.const 16))
+               (call $SilverOrb.ArenaTest.A.First.alloc! (i32.const 16))
              )
            """
   end
