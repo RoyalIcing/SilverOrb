@@ -7,41 +7,22 @@ defmodule SilverOrb.Arena do
 
   def alloc_impl(values_mod, byte_count) do
     offset_global_name = values_mod.offset_global_name()
-    end_page_offset = values_mod.end_page_offset()
     max_end_page_offset = values_mod.max_end_page_offset()
-    max_page_count = values_mod.max_page_count()
 
-    case max_page_count do
-      nil ->
-        Orb.snippet Orb.S32, new_ptr: I32.UnsafePointer do
-          new_ptr = Instruction.global_get(Orb.I32, offset_global_name)
+    Orb.snippet Orb.S32, new_ptr: I32.UnsafePointer do
+      new_ptr = Instruction.global_get(Orb.I32, offset_global_name)
 
-          if new_ptr + byte_count > end_page_offset * Orb.Memory.page_byte_size() do
-            unreachable!()
-          end
+      if new_ptr + byte_count > max_end_page_offset * Memory.page_byte_size() do
+        unreachable!()
+      end
 
-          Instruction.global_set(Orb.I32, offset_global_name, new_ptr + byte_count)
+      if new_ptr + byte_count > Memory.size() * Memory.page_byte_size() do
+        _ = Memory.grow!(1)
+      end
 
-          new_ptr
-        end
+      Instruction.global_set(Orb.I32, offset_global_name, new_ptr + byte_count)
 
-      max_page_count when is_integer(max_page_count) ->
-        Orb.snippet Orb.S32, new_ptr: I32.UnsafePointer do
-          new_ptr = Instruction.global_get(Orb.I32, offset_global_name)
-
-          if new_ptr + byte_count > max_end_page_offset * Memory.page_byte_size() do
-            # _ = Memory.grow!(1)
-            unreachable!()
-          end
-
-          if new_ptr + byte_count > Memory.size() * Memory.page_byte_size() do
-            _ = Memory.grow!(1)
-          end
-
-          Instruction.global_set(Orb.I32, offset_global_name, new_ptr + byte_count)
-
-          new_ptr
-        end
+      new_ptr
     end
   end
 
