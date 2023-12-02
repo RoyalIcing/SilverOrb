@@ -188,7 +188,7 @@ defmodule SilverOrb.ArenaTest do
     assert UnsafePointerType.to_wat() =~ ~S|(param $p1 i32)|
   end
 
-  test "valid? checks " do
+  test "UnsafePointer.memory_range/0" do
     alias UnsafePointerType.Heap.UnsafePointer
     assert 0 in UnsafePointer.memory_range()
     assert 0xFF in UnsafePointer.memory_range()
