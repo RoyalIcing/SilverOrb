@@ -179,6 +179,7 @@ defmodule SilverOrb.ArenaTest do
     Arena.def(Heap, pages: 2)
 
     defw accept_ptr(p1: Heap.UnsafePointer) do
+      Heap.UnsafePointer.validate!(p1)
     end
   end
 
@@ -195,6 +196,15 @@ defmodule SilverOrb.ArenaTest do
     assert (2 * 64 * 1024) in UnsafePointer.memory_range()
     assert (2 * 64 * 1024 + 1) not in UnsafePointer.memory_range()
     assert 0xFFFFFF not in UnsafePointer.memory_range()
+  end
+
+  test "UnsafePointer.validate!/1" do
+    alias OrbWasmtime.Wasm
+
+    assert nil == Wasm.call(UnsafePointerType, :accept_ptr, 0)
+    assert nil == Wasm.call(UnsafePointerType, :accept_ptr, 2 * 64 * 1024)
+    assert {:error, _} = Wasm.call(UnsafePointerType, :accept_ptr, 2 * 64 * 1024 + 1)
+    assert {:error, _} = Wasm.call(UnsafePointerType, :accept_ptr, 0xFFFFFF)
   end
 
   test "child String type maps to i64" do

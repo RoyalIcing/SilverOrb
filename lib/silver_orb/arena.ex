@@ -108,6 +108,12 @@ defmodule SilverOrb.Arena do
         quote do
           def wasm_type(), do: :i32
           def memory_range(), do: unquote(valid_memory_range |> Macro.escape())
+          def validate!(ptr) do
+            with do
+              %{first: first, last: last} = memory_range()
+              Orb.DSL.assert!(I32.band(I32.ge_u(ptr, first), I32.le_u(ptr, last)))
+            end
+          end
         end,
         unquote(Macro.Env.location(__CALLER__))
       )
