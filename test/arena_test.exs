@@ -191,6 +191,7 @@ defmodule SilverOrb.ArenaTest do
 
   test "UnsafePointer.memory_range/0" do
     alias UnsafePointerType.Heap.UnsafePointer
+
     assert 0 in UnsafePointer.memory_range()
     assert 0xFF in UnsafePointer.memory_range()
     assert (2 * 64 * 1024) in UnsafePointer.memory_range()
