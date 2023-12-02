@@ -82,6 +82,11 @@ defmodule SilverOrb.Arena do
       page_count = unquote(opts[:pages])
       max_page_count = unquote(opts[:max_pages])
       page_offset = Orb.Memory.pages(page_count)
+      end_page_offset = page_offset + page_count
+      max_end_page_offset = page_offset + (max_page_count || page_count)
+      page_byte_size = Orb.Memory.page_byte_size()
+      # TODO: this needs to incorporate whether memory has been grown.
+      valid_memory_range = Range.new(page_offset * page_byte_size, end_page_offset * page_byte_size)
 
       offset_global_name =
         String.to_atom("#{Macro.inspect_atom(:literal, module_name)}.bump_offset")
@@ -102,6 +107,7 @@ defmodule SilverOrb.Arena do
         Module.concat([module_name, UnsafePointer]),
         quote do
           def wasm_type(), do: :i32
+          def memory_range(), do: unquote(valid_memory_range |> Macro.escape())
         end,
         unquote(Macro.Env.location(__CALLER__))
       )

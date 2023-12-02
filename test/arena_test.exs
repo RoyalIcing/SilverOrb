@@ -172,20 +172,29 @@ defmodule SilverOrb.ArenaTest do
     assert {:error, _} = f.()
   end
 
-  test "child UnsafePointer type maps to i32" do
-    defmodule UnsafePointerType do
-      use Orb
-      require alias SilverOrb.Arena
+  defmodule UnsafePointerType do
+    use Orb
+    require alias SilverOrb.Arena
 
-      Arena.def(Heap, pages: 2)
+    Arena.def(Heap, pages: 2)
 
-      defw accept_string(p1: Heap.UnsafePointer) do
-      end
+    defw accept_ptr(p1: Heap.UnsafePointer) do
     end
+  end
 
+  test "child UnsafePointer type maps to i32" do
     Code.ensure_loaded!(UnsafePointerType.Heap)
     Code.ensure_loaded!(UnsafePointerType.Heap.UnsafePointer)
     assert UnsafePointerType.to_wat() =~ ~S|(param $p1 i32)|
+  end
+
+  test "valid? checks " do
+    alias UnsafePointerType.Heap.UnsafePointer
+    assert 0 in UnsafePointer.memory_range()
+    assert 0xFF in UnsafePointer.memory_range()
+    assert (2 * 64 * 1024) in UnsafePointer.memory_range()
+    assert (2 * 64 * 1024 + 1) not in UnsafePointer.memory_range()
+    assert 0xFFFFFF not in UnsafePointer.memory_range()
   end
 
   test "child String type maps to i64" do
