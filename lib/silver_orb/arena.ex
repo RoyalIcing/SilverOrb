@@ -98,6 +98,22 @@ defmodule SilverOrb.Arena do
         unquote(Macro.Env.location(__CALLER__))
       )
 
+      Module.create(
+        Module.concat([__MODULE__, unquote(name), UnsafePointer]),
+        quote do
+          def wasm_type(), do: :i32
+        end,
+        unquote(Macro.Env.location(__CALLER__))
+      )
+
+      Module.create(
+        Module.concat([__MODULE__, unquote(name), String]),
+        quote do
+          def wasm_type(), do: :i64
+        end,
+        unquote(Macro.Env.location(__CALLER__))
+      )
+
       global(
         do: [
           {offset_global_name, page_offset * Orb.Memory.page_byte_size()}

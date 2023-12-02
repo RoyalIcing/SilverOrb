@@ -171,4 +171,36 @@ defmodule SilverOrb.ArenaTest do
     f = Instance.capture(i, :over_max_pages, 0)
     assert {:error, _} = f.()
   end
+
+  test "child UnsafePointer type maps to i32" do
+    defmodule UnsafePointerType do
+      use Orb
+      require alias SilverOrb.Arena
+
+      Arena.def(Heap, pages: 2)
+
+      defw accept_string(p1: Heap.UnsafePointer) do
+      end
+    end
+
+    Code.ensure_loaded!(UnsafePointerType.Heap)
+    Code.ensure_loaded!(UnsafePointerType.Heap.UnsafePointer)
+    assert UnsafePointerType.to_wat() =~ ~S|(param $p1 i32)|
+  end
+
+  test "child String type maps to i64" do
+    defmodule StringType do
+      use Orb
+      require alias SilverOrb.Arena
+
+      Arena.def(Heap, pages: 2)
+
+      defw accept_string(s1: Heap.String) do
+      end
+    end
+
+    Code.ensure_loaded!(StringType.Heap)
+    Code.ensure_loaded!(StringType.Heap.String)
+    assert StringType.to_wat() =~ ~S|(param $s1 i64)|
+  end
 end
