@@ -87,7 +87,7 @@ defmodule SilverOrb.Arena do
         String.to_atom("#{Macro.inspect_atom(:literal, module_name)}.bump_offset")
 
       Module.create(
-        Module.concat([__MODULE__, unquote(name), Values]),
+        Module.concat([module_name, Values]),
         quote do
           def start_page_offset(), do: unquote(page_offset)
           def end_page_offset(), do: unquote(page_offset + page_count)
@@ -99,7 +99,7 @@ defmodule SilverOrb.Arena do
       )
 
       Module.create(
-        Module.concat([__MODULE__, unquote(name), UnsafePointer]),
+        Module.concat([module_name, UnsafePointer]),
         quote do
           def wasm_type(), do: :i32
         end,
@@ -107,7 +107,7 @@ defmodule SilverOrb.Arena do
       )
 
       Module.create(
-        Module.concat([__MODULE__, unquote(name), String]),
+        Module.concat([module_name, String]),
         quote do
           def wasm_type(), do: :i64
         end,
