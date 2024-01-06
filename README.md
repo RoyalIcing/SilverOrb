@@ -14,8 +14,7 @@ The docs can be found at <https://hexdocs.pm/silver_orb>.
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `silver_orb` to your list of dependencies in `mix.exs`:
+The package can be installed by adding `silver_orb` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -25,3 +24,6 @@ def deps do
 end
 ```
 
+## Inspiration
+
+- https://www.rfleury.com/p/untangling-lifetimes-the-arena-allocator
