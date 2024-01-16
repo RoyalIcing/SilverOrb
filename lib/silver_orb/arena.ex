@@ -6,8 +6,10 @@ defmodule SilverOrb.Arena do
 
   ```elixir
   defmodule ArenaExample do
-    SilverOrb.Arena.def(First, pages: 2)
-    SilverOrb.Arena.def(Second, pages: 4, max_pages: 10)
+    # SilverOrb.Arena.def(First, pages: 2)
+    # SilverOrb.Arena.def(Second, pages: 4, max_pages: 10)
+    SilverOrb.defarena(First, pages: 2)
+    SilverOrb.defarena(Second, pages: 4, max_pages: 10)
 
     defw example(), a: I32.UnsafePointer, b: I32.UnsafePointer do
       a = First.alloc(4)
@@ -33,7 +35,7 @@ defmodule SilverOrb.Arena do
     offset_global_name = values_mod.offset_global_name()
     max_end_page_offset = values_mod.max_end_page_offset()
 
-    Orb.snippet Orb.S32, new_ptr: I32.UnsafePointer do
+    Orb.snippet Orb.U32, new_ptr: I32.UnsafePointer do
       new_ptr = Instruction.global_get(Orb.I32, offset_global_name)
 
       if new_ptr + byte_count > max_end_page_offset * Memory.page_byte_size() do
@@ -86,7 +88,8 @@ defmodule SilverOrb.Arena do
       max_end_page_offset = page_offset + (max_page_count || page_count)
       page_byte_size = Orb.Memory.page_byte_size()
       # TODO: this needs to incorporate whether memory has been grown.
-      valid_memory_range = Range.new(page_offset * page_byte_size, end_page_offset * page_byte_size)
+      valid_memory_range =
+        Range.new(page_offset * page_byte_size, end_page_offset * page_byte_size)
 
       offset_global_name =
         String.to_atom("#{Macro.inspect_atom(:literal, module_name)}.bump_offset")
@@ -108,6 +111,7 @@ defmodule SilverOrb.Arena do
         quote do
           def wasm_type(), do: :i32
           def memory_range(), do: unquote(valid_memory_range |> Macro.escape())
+
           def validate!(ptr) do
             with do
               %{first: first, last: last} = memory_range()
