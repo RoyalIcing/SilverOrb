@@ -6,7 +6,7 @@ The docs can be found at <https://hexdocs.pm/silver_orb>.
 
 WebAssembly is low level — you essentially get to define global variables, an array of memory, and some functions to operate on them. It’s not batteries-included.
 
-SilverOrb provides a few extra batteries so common tasks are easier. They are:
+SilverOrb provides several extra batteries so common tasks are easier. They are:
 
 - `Arena` allocator for memory management.
 - `ASCII` for operating on ASCII strings.
