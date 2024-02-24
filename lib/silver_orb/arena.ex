@@ -38,6 +38,7 @@ defmodule SilverOrb.Arena do
     Orb.snippet Orb.U32, new_ptr: I32.UnsafePointer do
       new_ptr = Instruction.global_get(Orb.I32, offset_global_name)
 
+      # TODO: we need an option for alignment.
       if new_ptr + byte_count > max_end_page_offset * Memory.page_byte_size() do
         unreachable!()
       end
