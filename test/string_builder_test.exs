@@ -61,7 +61,7 @@ end
 
 defmodule StringBuilderTest do
   use ExUnit.Case, async: true
-  alias OrbWasmtime.{Instance, Wasm}
+  alias OrbWasmtime.Instance
 
   describe "MultiStepForm" do
     test "highlights first step" do
