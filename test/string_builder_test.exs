@@ -76,5 +76,20 @@ defmodule StringBuilderTest do
                <div class="w-4 h-4 text-center text-black">5</div>
                """
     end
+
+    test "can jump to 3rd step" do
+      instance = Instance.run(MultiStepForm)
+      # Instance.set_global(instance, :step_count, 3)
+      Instance.call(instance, :jump_to_step, 3)
+
+      assert to_string(instance) ==
+               ~S"""
+               <div class="w-4 h-4 text-center text-black">1</div>
+               <div class="w-4 h-4 text-center text-black">2</div>
+               <div class="w-4 h-4 text-center bg-blue-600 text-white">3</div>
+               <div class="w-4 h-4 text-center text-black">4</div>
+               <div class="w-4 h-4 text-center text-black">5</div>
+               """
+    end
   end
 end
