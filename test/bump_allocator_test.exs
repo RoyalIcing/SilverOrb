@@ -51,10 +51,8 @@ defmodule BumpAllocatorTest do
       use Orb
       use SilverOrb.BumpAllocator
 
-      wasm do
-        func inner_magic(), I32 do
-          42 + @bump_offset
-        end
+      defw inner_magic(), I32 do
+        42 + @bump_offset
       end
     end
 
@@ -62,12 +60,10 @@ defmodule BumpAllocatorTest do
       use Orb
       use SilverOrb.BumpAllocator
 
-      wasm do
-        A.funcp()
+      Orb.include(A)
 
-        func magic(), I32 do
-          typed_call(I32, :inner_magic, [])
-        end
+      defw magic(), I32 do
+        typed_call(I32, :inner_magic, [])
       end
 
       BumpAllocator.export_alloc()

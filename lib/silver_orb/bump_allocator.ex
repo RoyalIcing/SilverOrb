@@ -41,9 +41,7 @@ defmodule SilverOrb.BumpAllocator do
           @wasm_use_bump_allocator true
       end
 
-      Orb.wasm do
-        unquote(__MODULE__).funcp(:bump_alloc)
-      end
+      Orb.include(unquote(__MODULE__))
 
       import unquote(__MODULE__)
     end
@@ -51,10 +49,11 @@ defmodule SilverOrb.BumpAllocator do
 
   defmacro export_alloc() do
     quote do
-      Orb.wasm do
+      Orb.__append_body do
         # unquote(__MODULE__)._func(:alloc)
-        Orb.DSL.raw_wat("(export \"alloc\" (func $bump_alloc))")
-        unquote(__MODULE__)._func(:free_all)
+
+        Orb.DSL.raw_wat("(export \"alloc\" (func $alloc))")
+        # unquote(__MODULE__)._func(:free_all)
       end
     end
   end
@@ -66,29 +65,22 @@ defmodule SilverOrb.BumpAllocator do
     bump_mark: 0
   )
 
-  wasm do
-    funcp bump_alloc(size: I32), I32, [] do
-      # TODO: check if we have allocated too much
-      # and if so, either err or increase the available memory.
-      # TODO: Need better maths than this to round up to aligned memory?
+  defw alloc(size: I32), I32, [] do
+    # TODO: check if we have allocated too much
+    # and if so, either err or increase the available memory.
+    # TODO: Need better maths than this to round up to aligned memory?
 
-      push(@bump_offset) do
-        @bump_offset = I32.add(@bump_offset, size)
-      end
-
-      # Better syntax?
-      # pop(push: @bump_offset) do
-      #   @bump_offset = I32.add(@bump_offset, size)
-      # end
+    push(@bump_offset) do
+      @bump_offset = I32.add(@bump_offset, size)
     end
-    |> export("alloc")
 
-    func free_all() do
-      @bump_offset = Constants.bump_init_offset()
-    end
+    # Better syntax?
+    # pop(push: @bump_offset) do
+    #   @bump_offset = I32.add(@bump_offset, size)
+    # end
   end
 
-  def alloc(byte_count) do
-    Orb.DSL.typed_call(:i32, :bump_alloc, [byte_count])
+  defw free_all() do
+    @bump_offset = Constants.bump_init_offset()
   end
 end

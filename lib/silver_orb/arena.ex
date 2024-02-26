@@ -143,7 +143,7 @@ defmodule SilverOrb.Arena do
 
           alias __MODULE__.Values
 
-          set_func_prefix(inspect(__MODULE__))
+          Orb.set_func_prefix(inspect(__MODULE__))
 
           @doc """
           Allocates memory into this arena. Traps if there is not enough free space.
