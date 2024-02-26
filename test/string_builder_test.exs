@@ -64,7 +64,7 @@ defmodule StringBuilderTest do
   alias OrbWasmtime.{Instance, Wasm}
 
   describe "MultiStepForm" do
-    test "works" do
+    test "highlights first step" do
       instance = Instance.run(MultiStepForm)
 
       assert to_string(instance) ==
