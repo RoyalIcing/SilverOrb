@@ -58,7 +58,7 @@ defmodule SilverOrb.StringBuilder do
 
         ~S[">]
         append!(decimal_u32: step)
-        ~S[</div>\n]
+        ~S[</div>\\n]
       end
     end
   end
