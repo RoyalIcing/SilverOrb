@@ -31,9 +31,9 @@ defmodule SilverOrb.StringBuilder do
     defw(previous_step(), do: change_step(@step - 1))
     defw(jump_to_step(step: I32), do: change_step(step))
 
-    defw(to_string(), I32.String, do: to_html())
+    defw(to_string(), StringBuilder, do: to_html())
 
-    defw to_html(), I32.String do
+    defw to_html(), StringBuilder do
       build! do
         build_step(1)
         build_step(2)
@@ -43,7 +43,7 @@ defmodule SilverOrb.StringBuilder do
       end
     end
 
-    defwp build_step(step: I32), I32.String, current_step?: I32 do
+    defwp build_step(step: I32), StringBuilder, current_step?: I32 do
       current_step? = step === Orb.Instruction.global_get(:i32, :step)
 
       build! do
@@ -68,6 +68,12 @@ defmodule SilverOrb.StringBuilder do
   use SilverOrb.BumpAllocator
   use SilverOrb.Mem
 
+  @behaviour Orb.CustomType
+  @impl Orb.CustomType
+  def wasm_type(), do: :i32
+  @impl Orb.CustomType
+  def byte_count(), do: 1
+
   defmodule Format do
     @moduledoc false
     use Orb.Import
@@ -85,6 +91,8 @@ defmodule SilverOrb.StringBuilder do
 
       Orb.include(unquote(__MODULE__))
       import unquote(__MODULE__)
+
+      alias SilverOrb.StringBuilder
 
       # global do
       #   @bump_write_level 0
@@ -130,14 +138,14 @@ defmodule SilverOrb.StringBuilder do
   end
 
   def build_begin!(), do: Orb.DSL.typed_call(:unknown_effect, :bump_write_start, [])
-  def build_done!(), do: Orb.DSL.typed_call(Orb.I32.String, :bump_write_done, [])
+  def build_done!(), do: Orb.DSL.typed_call(__MODULE__, :bump_write_done, [])
   def appended?(), do: Orb.DSL.typed_call(I32, :bump_written?, [])
 
   defmacro build!(do: block) do
     items = __build_block(block)
 
     quote do
-      Orb.InstructionSequence.new(Orb.I32.String, [
+      Orb.InstructionSequence.new(unquote(__MODULE__), [
         build_begin!(),
         Orb.InstructionSequence.new(:unknown_effect, unquote(items)),
         build_done!()
@@ -181,17 +189,8 @@ defmodule SilverOrb.StringBuilder do
     append!(string: term)
   end
 
-  def build_item(%{type: Orb.I32.String} = str_ptr) do
+  def build_item(%{type: __MODULE__} = str_ptr) do
     append!(string: str_ptr)
-  end
-
-  def build_item(
-        %Orb.Instruction{
-          type: Orb.I32.String,
-          operation: {:call, _}
-        } = instruction
-      ) do
-    Orb.Stack.drop(instruction)
   end
 
   def build_item(
@@ -239,7 +238,7 @@ defmodule SilverOrb.StringBuilder do
   end
 
   def append!(constant) when is_binary(constant) do
-    Orb.DSL.typed_call(:unknown_effect, :bump_write_str, [constant])
+    bump_write_str(constant)
   end
 
   def append!(%Orb.Constants.NulTerminatedString{string: ""}) do
@@ -247,15 +246,11 @@ defmodule SilverOrb.StringBuilder do
   end
 
   def append!(%Orb.Constants.NulTerminatedString{} = str_ptr) do
-    Orb.DSL.typed_call(:unknown_effect, :bump_write_str, [str_ptr])
-  end
-
-  def append!(%{type: Orb.I32.String} = str_ptr) do
-    Orb.DSL.typed_call(:unknown_effect, :bump_write_str, [str_ptr])
+    bump_write_str(str_ptr)
   end
 
   def append!(string: str_ptr) do
-    Orb.DSL.typed_call(:unknown_effect, :bump_write_str, [str_ptr])
+    bump_write_str(str_ptr)
   end
 
   def append!(u8: char) do

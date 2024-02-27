@@ -28,9 +28,9 @@ defmodule MultiStepForm do
   defw(previous_step(), do: change_step(@step - 1))
   defw(jump_to_step(step: I32), do: change_step(step))
 
-  defw(to_string(), I32.String, do: to_html())
+  defw(to_string(), StringBuilder, do: to_html())
 
-  defw to_html(), I32.String do
+  defw to_html(), StringBuilder do
     build! do
       build_step(1)
       build_step(2)
@@ -40,7 +40,7 @@ defmodule MultiStepForm do
     end
   end
 
-  defwp build_step(step: I32), I32.String, current_step?: I32 do
+  defwp build_step(step: I32), StringBuilder, current_step?: I32 do
     current_step? = step === Orb.Instruction.global_get(:i32, :step)
 
     build! do
