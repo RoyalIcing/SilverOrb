@@ -5,7 +5,6 @@ defmodule SilverOrb.StringBuilder do
   ```elixir
   defmodule MultiStepForm do
     use Orb
-    use I32.String
     use SilverOrb.BumpAllocator
     use SilverOrb.StringBuilder
 

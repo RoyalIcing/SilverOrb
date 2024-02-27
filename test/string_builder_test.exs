@@ -2,7 +2,6 @@ defmodule MultiStepForm do
   # See: https://buildui.com/courses/framer-motion-recipes/multistep-wizard
 
   use Orb
-  use I32.String
   use SilverOrb.BumpAllocator
   use SilverOrb.StringBuilder
 
