@@ -2,15 +2,16 @@ defmodule MultiStepForm do
   # See: https://buildui.com/courses/framer-motion-recipes/multistep-wizard
 
   use Orb
-  use SilverOrb.BumpAllocator
   use I32.String
+  use SilverOrb.BumpAllocator
   use SilverOrb.StringBuilder
-  alias Orb.I32
-
-  I32.export_global(:mutable, step_count: 4)
 
   global do
     @step 1
+  end
+
+  global :export_mutable do
+    @step_count 4
   end
 
   defw(get_current_step(), I32, do: @step)
