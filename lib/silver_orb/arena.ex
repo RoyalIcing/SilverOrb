@@ -6,10 +6,8 @@ defmodule SilverOrb.Arena do
 
   ```elixir
   defmodule ArenaExample do
-    # SilverOrb.Arena.def(First, pages: 2)
-    # SilverOrb.Arena.def(Second, pages: 4, max_pages: 10)
-    SilverOrb.defarena(First, pages: 2)
-    SilverOrb.defarena(Second, pages: 4, max_pages: 10)
+    SilverOrb.Arena.def(First, pages: 2)
+    SilverOrb.Arena.def(Second, pages: 4, max_pages: 10)
 
     defw example(), a: I32.UnsafePointer, b: I32.UnsafePointer do
       a = First.alloc(4)
