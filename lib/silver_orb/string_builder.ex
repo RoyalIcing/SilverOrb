@@ -1,6 +1,5 @@
 defmodule SilverOrb.StringBuilder do
   use Orb
-  # alias ComponentsGuide.Wasm.Examples.Format.IntToString
 
   use SilverOrb.BumpAllocator
   use SilverOrb.Mem
@@ -17,7 +16,7 @@ defmodule SilverOrb.StringBuilder do
     quote do
       use SilverOrb.Mem
       use I32.String
-      use SilverOrb.Format.IntToString
+      use SilverOrb.IntFormatter
 
       Orb.include(unquote(__MODULE__))
       import unquote(__MODULE__)
@@ -206,7 +205,7 @@ defmodule SilverOrb.StringBuilder do
 
   def append!(decimal_u32: int) do
     snippet do
-      @bump_offset = SilverOrb.Format.IntToString.format_u32(int, @bump_offset)
+      @bump_offset = SilverOrb.IntFormatter.format_u32(int, @bump_offset)
     end
   end
 
