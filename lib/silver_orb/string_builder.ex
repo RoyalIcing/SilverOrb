@@ -70,6 +70,7 @@ defmodule SilverOrb.StringBuilder do
   use SilverOrb.Mem
 
   defmodule Format do
+    @moduledoc false
     use Orb.Import
 
     defw(f32(value: F32, str_ptr: I32.U8.UnsafePointer), I32)
