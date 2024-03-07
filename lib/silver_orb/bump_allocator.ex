@@ -47,13 +47,25 @@ defmodule SilverOrb.BumpAllocator do
     end
   end
 
+  defmodule ExportAlloc do
+    @moduledoc false
+
+    defstruct []
+
+    defimpl Orb.ToWat do
+      def to_wat(_, indent) do
+        [
+          indent,
+          ~s|(export "alloc" (func $alloc))\n|
+        ]
+      end
+    end
+  end
+
   defmacro export_alloc() do
     quote do
       Orb.__append_body do
-        # unquote(__MODULE__)._func(:alloc)
-
-        Orb.DSL.raw_wat("(export \"alloc\" (func $alloc))")
-        # unquote(__MODULE__)._func(:free_all)
+        %ExportAlloc{}
       end
     end
   end
