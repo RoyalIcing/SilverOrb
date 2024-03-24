@@ -182,6 +182,7 @@ defmodule SilverOrb.StringBuilder do
   end
 
   def build_item(%Orb.Constants.NulTerminatedString{string: ""}) do
+    # FIXME
     :nop
   end
 

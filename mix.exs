@@ -6,7 +6,7 @@ defmodule SilverOrb.MixProject do
   def project do
     [
       app: :silver_orb,
-      version: "0.0.6",
+      version: "0.0.7",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -31,7 +31,7 @@ defmodule SilverOrb.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:orb, "~> 0.0.35"},
+      {:orb, "~> 0.0.37"},
       # {:orb, path: "../orb", override: true},
       {:orb_wasmtime, "~> 0.1.10", only: :test},
       {:ex_doc, "~> 0.27", only: :dev, runtime: false}
