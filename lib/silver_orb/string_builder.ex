@@ -193,6 +193,11 @@ defmodule SilverOrb.StringBuilder do
     append!(string: str_ptr)
   end
 
+  # TODO: String64
+  def build_item(%{push_type: Orb.I32.String} = str_ptr) do
+    append!(string: str_ptr)
+  end
+
   def build_item(%struct{push_type: type} = instruction)
       when struct in [Orb.Instruction, Orb.VariableReference] and type in [:f32, Orb.F32, F32] do
     append!(decimal_f32: instruction)

@@ -59,6 +59,96 @@ defmodule MultiStepForm do
   end
 end
 
+defmodule SetCookie do
+  # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+
+  use Orb
+  use SilverOrb.BumpAllocator
+  use SilverOrb.StringBuilder
+  use SilverOrb.Mem
+  use I32.String
+
+  SilverOrb.BumpAllocator.export_alloc()
+
+  # defmodule Constants do
+  #   @constant_values I32.calculate_enum([:secure, :http_only])
+
+  #   def get_len(value) do
+
+  #   end
+  # end
+
+  global do
+    @name ""
+    @value ""
+    @domain ""
+    @path ""
+    @secure 0
+    @http_only 0
+  end
+
+  with do
+    _ = @name
+    _ = @value
+    _ = @domain
+    _ = @path
+    _ = @secure
+    _ = @http_only
+  end
+
+  defw set_cookie_name(new_value: I32.String) do
+    @name = new_value
+  end
+
+  defw set_cookie_value(new_value: I32.String) do
+    @value = new_value
+  end
+
+  defw set_domain(new_value: I32.String) do
+    @domain = new_value
+  end
+
+  defw set_path(new_path: I32.String) do
+    @path = new_path
+  end
+
+  defw set_secure() do
+    @secure = 1
+  end
+
+  defw set_http_only() do
+    @http_only = 1
+  end
+
+  defw to_string(), StringBuilder do
+    build! do
+      # @name <> ?= <> @value
+      @name
+      append!(ascii: ?=)
+      @value
+
+      if strlen(@domain) > 0 do
+        # "; Domain=" <> @domain
+        "; Domain="
+        @domain
+      end
+
+      if strlen(@path) > 0 do
+        "; Path="
+        @path
+      end
+
+      if @secure do
+        "; Secure"
+      end
+
+      if @http_only do
+        "; HttpOnly"
+      end
+    end
+  end
+end
+
 defmodule StringBuilderTest do
   use ExUnit.Case, async: true
   alias OrbWasmtime.Instance
@@ -91,6 +181,77 @@ defmodule StringBuilderTest do
                <div class="w-4 h-4 text-center text-black">4</div>
                <div class="w-4 h-4 text-center text-black">5</div>
                """
+    end
+  end
+
+  describe "SetCookie" do
+    test "wasm size" do
+      assert byte_size(OrbWasmtime.Wasm.to_wasm(SetCookie)) == 824
+    end
+
+    test "name and value" do
+      wat = SetCookie.to_wat()
+      inst = Instance.run(wat)
+      # put_in(inst[:name], "foo")
+      Instance.call(inst, :set_cookie_name, Instance.alloc_string(inst, "foo"))
+      # Instance.call(inst, :"name=", Instance.alloc_string(inst, "foo"))
+      Instance.call(inst, :set_cookie_value, Instance.alloc_string(inst, "value"))
+
+      # inst[{String, :to_string}]
+      assert Instance.call_reading_string(inst, :to_string) == "foo=value"
+    end
+
+    test "domain" do
+      inst = Instance.run(SetCookie)
+
+      # Instance.write_string!(inst, "foo", :cookie_name_range)
+
+      Instance.call(inst, :set_cookie_name, Instance.alloc_string(inst, "foo"))
+      Instance.call(inst, :set_cookie_value, Instance.alloc_string(inst, "value"))
+      Instance.call(inst, :set_domain, Instance.alloc_string(inst, "foo.example.com"))
+      assert Instance.call_reading_string(inst, :to_string) == "foo=value; Domain=foo.example.com"
+    end
+
+    test "HttpOnly" do
+      inst = Instance.run(SetCookie)
+      Instance.call(inst, :set_cookie_name, Instance.alloc_string(inst, "foo"))
+      Instance.call(inst, :set_cookie_value, Instance.alloc_string(inst, "value"))
+      Instance.call(inst, :set_http_only)
+      assert Instance.call_reading_string(inst, :to_string) == "foo=value; HttpOnly"
+    end
+
+    test "HttpOnly Secure" do
+      inst = Instance.run(SetCookie)
+      Instance.call(inst, :set_cookie_name, Instance.alloc_string(inst, "foo"))
+      Instance.call(inst, :set_cookie_value, Instance.alloc_string(inst, "value"))
+      Instance.call(inst, :set_http_only)
+      Instance.call(inst, :set_secure)
+      assert Instance.call_reading_string(inst, :to_string) == "foo=value; Secure; HttpOnly"
+    end
+
+    test "Domain HttpOnly Secure" do
+      inst = Instance.run(SetCookie)
+      Instance.call(inst, :set_cookie_name, Instance.alloc_string(inst, "foo"))
+      Instance.call(inst, :set_cookie_value, Instance.alloc_string(inst, "value"))
+      Instance.call(inst, :set_domain, Instance.alloc_string(inst, "foo.example.com"))
+      Instance.call(inst, :set_http_only)
+      Instance.call(inst, :set_secure)
+
+      assert Instance.call_reading_string(inst, :to_string) ==
+               "foo=value; Domain=foo.example.com; Secure; HttpOnly"
+    end
+
+    test "Domain Path HttpOnly Secure" do
+      inst = Instance.run(SetCookie)
+      Instance.call(inst, :set_cookie_name, Instance.alloc_string(inst, "foo"))
+      Instance.call(inst, :set_cookie_value, Instance.alloc_string(inst, "value"))
+      Instance.call(inst, :set_domain, Instance.alloc_string(inst, "foo.example.com"))
+      Instance.call(inst, :set_path, Instance.alloc_string(inst, "/"))
+      Instance.call(inst, :set_http_only)
+      Instance.call(inst, :set_secure)
+
+      assert Instance.call_reading_string(inst, :to_string) ==
+               "foo=value; Domain=foo.example.com; Path=/; Secure; HttpOnly"
     end
   end
 end
