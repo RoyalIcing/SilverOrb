@@ -18,7 +18,7 @@ defmodule MultiStepForm do
   defwp change_step(step: I32) do
     @step =
       if step < 1 do
-        1
+        i32(1)
       else
         if(step > @step_count, do: @step_count, else: step)
       end
@@ -65,7 +65,8 @@ defmodule StringBuilderTest do
 
   describe "MultiStepForm" do
     test "highlights first step" do
-      instance = Instance.run(MultiStepForm)
+      wat = Orb.to_wat(MultiStepForm)
+      instance = Instance.run(wat)
 
       assert to_string(instance) ==
                ~S"""

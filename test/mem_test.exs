@@ -13,7 +13,7 @@ defmodule MemTest do
 
   test "convenience calls" do
     assert Mem.memset(dest: 1, u8: 2, byte_count: 3) == %Orb.Instruction{
-             type: Orb.I32,
+             push_type: Orb.I32,
              operation: {:call, :memset},
              operands: [1, 2, 3]
            }

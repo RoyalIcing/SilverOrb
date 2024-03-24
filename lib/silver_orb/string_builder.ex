@@ -110,7 +110,7 @@ defmodule SilverOrb.StringBuilder do
     @bump_write_level = @bump_write_level + 1
   end
 
-  defwp bump_write_done(), I32 do
+  defwp bump_write_done(), __MODULE__ do
     assert!(@bump_write_level > 0)
     @bump_write_level = @bump_write_level - 1
 
@@ -137,9 +137,9 @@ defmodule SilverOrb.StringBuilder do
     @bump_offset > @bump_mark
   end
 
-  def build_begin!(), do: Orb.DSL.typed_call(:unknown_effect, :bump_write_start, [])
-  def build_done!(), do: Orb.DSL.typed_call(__MODULE__, :bump_write_done, [])
-  def appended?(), do: Orb.DSL.typed_call(I32, :bump_written?, [])
+  def build_begin!(), do: bump_write_start()
+  def build_done!(), do: bump_write_done()
+  def appended?(), do: bump_written?()
 
   defmacro build!(do: block) do
     items = __build_block(block)
@@ -147,7 +147,7 @@ defmodule SilverOrb.StringBuilder do
     quote do
       Orb.InstructionSequence.new(unquote(__MODULE__), [
         build_begin!(),
-        Orb.InstructionSequence.new(:unknown_effect, unquote(items)),
+        Orb.InstructionSequence.new(nil, unquote(items)),
         build_done!()
       ])
     end
@@ -189,16 +189,11 @@ defmodule SilverOrb.StringBuilder do
     append!(string: term)
   end
 
-  def build_item(%{type: __MODULE__} = str_ptr) do
+  def build_item(%{push_type: __MODULE__} = str_ptr) do
     append!(string: str_ptr)
   end
 
-  def build_item(
-        %struct{
-          type: type
-          # operation: {:global_get, _}
-        } = instruction
-      )
+  def build_item(%struct{push_type: type} = instruction)
       when struct in [Orb.Instruction, Orb.VariableReference] and type in [:f32, Orb.F32, F32] do
     append!(decimal_f32: instruction)
   end
@@ -388,8 +383,8 @@ defmodule SilverOrb.StringBuilder do
       quote do
         Orb.IfElse.new(
           unquote(condition),
-          unquote(StringBuilder.__build_block(when_true)),
-          unquote(StringBuilder.__build_block(when_false))
+          Orb.InstructionSequence.new(unquote(StringBuilder.__build_block(when_true))),
+          Orb.InstructionSequence.new(unquote(StringBuilder.__build_block(when_false)))
         )
       end
     end
@@ -398,7 +393,7 @@ defmodule SilverOrb.StringBuilder do
       quote do
         Orb.IfElse.new(
           unquote(condition),
-          unquote(StringBuilder.__build_block(when_true))
+          Orb.InstructionSequence.new(unquote(StringBuilder.__build_block(when_true)))
         )
       end
     end
