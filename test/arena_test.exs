@@ -172,7 +172,7 @@ defmodule SilverOrb.ArenaTest do
     assert {:error, _} = f.()
   end
 
-  defmodule UnsafePointerType do
+  defmodule UnsafePointerTypeModule do
     use Orb
     require alias SilverOrb.Arena
 
@@ -184,28 +184,29 @@ defmodule SilverOrb.ArenaTest do
   end
 
   test "child UnsafePointer type maps to i32" do
-    Code.ensure_loaded!(UnsafePointerType.Heap)
-    Code.ensure_loaded!(UnsafePointerType.Heap.UnsafePointer)
-    assert UnsafePointerType.to_wat() =~ ~S|(param $p1 i32)|
+    # Code.ensure_loaded!(UnsafePointerTypeModule.Heap)
+    # Code.ensure_loaded!(UnsafePointerTypeModule.Heap.UnsafePointer)
+    assert UnsafePointerTypeModule.to_wat() =~ ~S|(param $p1 i32)|
   end
 
   test "UnsafePointer.memory_range/0" do
-    alias UnsafePointerType.Heap.UnsafePointer
+    alias UnsafePointerTypeModule.Heap.UnsafePointer
 
     assert 0 in UnsafePointer.memory_range()
     assert 0xFF in UnsafePointer.memory_range()
     assert (2 * 64 * 1024) in UnsafePointer.memory_range()
     assert (2 * 64 * 1024 + 1) not in UnsafePointer.memory_range()
     assert 0xFFFFFF not in UnsafePointer.memory_range()
+    assert 0..(2 * 64 * 1024) === UnsafePointer.memory_range()
   end
 
   test "UnsafePointer.validate!/1" do
     alias OrbWasmtime.Wasm
 
-    assert nil == Wasm.call(UnsafePointerType, :accept_ptr, 0)
-    assert nil == Wasm.call(UnsafePointerType, :accept_ptr, 2 * 64 * 1024)
-    assert {:error, _} = Wasm.call(UnsafePointerType, :accept_ptr, 2 * 64 * 1024 + 1)
-    assert {:error, _} = Wasm.call(UnsafePointerType, :accept_ptr, 0xFFFFFF)
+    assert nil == Wasm.call(UnsafePointerTypeModule, :accept_ptr, 0)
+    assert nil == Wasm.call(UnsafePointerTypeModule, :accept_ptr, 2 * 64 * 1024)
+    assert {:error, _} = Wasm.call(UnsafePointerTypeModule, :accept_ptr, 2 * 64 * 1024 + 1)
+    assert {:error, _} = Wasm.call(UnsafePointerTypeModule, :accept_ptr, 0xFFFFFF)
   end
 
   test "child String type maps to i64" do
@@ -219,8 +220,44 @@ defmodule SilverOrb.ArenaTest do
       end
     end
 
-    Code.ensure_loaded!(StringType.Heap)
-    Code.ensure_loaded!(StringType.Heap.String)
+    # Code.ensure_loaded!(StringType.Heap)
+    # Code.ensure_loaded!(StringType.Heap.String)
     assert StringType.to_wat() =~ ~S|(param $s1 i64)|
+  end
+
+  test "Created arena module has a string_equal?/1 function" do
+    defmodule EqualToString do
+      use Orb
+      require alias SilverOrb.Arena
+
+      Arena.def(Input, pages: 1)
+
+      defw(input_offset(), I32, do: Input.Values.start_page_offset() * Memory.page_byte_size())
+
+      defw equal_test(), {I32, I32, I32, I32} do
+        Input.string_equal?("abc")
+        Input.string_equal?("mn")
+        Input.string_equal?("mno")
+        Input.string_equal?("mnop")
+      end
+
+      defw match_test(), I32 do
+        Arena.match_string Input, I32 do
+          "abc" -> i32(1)
+          "mn" -> i32(2)
+          "mno" -> i32(3)
+          "mnop" -> i32(4)
+        end
+      end
+    end
+
+    wat = Orb.to_wat(EqualToString)
+    i = Instance.run(wat)
+    input_ptr = Instance.call(i, :input_offset)
+
+    Instance.write_memory(i, input_ptr, "mno" |> :binary.bin_to_list())
+
+    assert {0, 0, 1, 0} = Instance.call(i, :equal_test)
+    assert 3 = Instance.call(i, :match_test)
   end
 end
