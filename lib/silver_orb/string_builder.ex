@@ -194,6 +194,10 @@ defmodule SilverOrb.StringBuilder do
     append!(string: str_ptr)
   end
 
+  def build_item(%{push_type: Orb.Constants.NulTerminatedString} = str_ptr) do
+    append!(string: str_ptr)
+  end
+
   # TODO: String64
   def build_item(%{push_type: Orb.I32.String} = str_ptr) do
     append!(string: str_ptr)

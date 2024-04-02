@@ -78,6 +78,11 @@ defmodule SetCookie do
   #   end
   # end
 
+  # SilverOrb.Arena.def(NameInput, 1)
+  # SilverOrb.Arena.def(ValueInput, 1)
+  # SilverOrb.Arena.def(DomainInput, 1)
+  # SilverOrb.Arena.def(PathInput, 1)
+
   global do
     @name ""
     @value ""
