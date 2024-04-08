@@ -86,7 +86,6 @@ defmodule SilverOrb.StringBuilder do
   defmacro __using__(_) do
     quote do
       use SilverOrb.Mem
-      use I32.String
       use SilverOrb.IntFormatter
 
       Orb.include(unquote(__MODULE__))
@@ -125,12 +124,22 @@ defmodule SilverOrb.StringBuilder do
     @bump_mark
   end
 
-  defwp bump_write_str(str_ptr: I32.U8.UnsafePointer), len: I32 do
+  defwp bump_write_str(str_ptr: I32.U8.UnsafePointer), count: I32, char: I32 do
     return(if: I32.eq(str_ptr, @bump_mark))
 
-    len = typed_call(I32, :strlen, [str_ptr])
-    SilverOrb.Mem.memcpy(@bump_offset, str_ptr, len)
-    @bump_offset = @bump_offset + len
+    loop EachChar do
+      # char = str_ptr[at!: i]
+      char = Memory.load!(I32.U8, str_ptr + count)
+
+      Memory.store!(I32.U8, @bump_offset + count, char)
+
+      if char do
+        count = count + 1
+        EachChar.continue()
+      end
+    end
+
+    @bump_offset = @bump_offset + count
   end
 
   defwp bump_written?(), I32 do
@@ -182,8 +191,7 @@ defmodule SilverOrb.StringBuilder do
   end
 
   def build_item(%Orb.Constants.NulTerminatedString{string: ""}) do
-    # FIXME
-    :nop
+    Orb.InstructionSequence.empty()
   end
 
   def build_item(%Orb.Constants.NulTerminatedString{} = term) do
@@ -194,12 +202,8 @@ defmodule SilverOrb.StringBuilder do
     append!(string: str_ptr)
   end
 
-  def build_item(%{push_type: Orb.Constants.NulTerminatedString} = str_ptr) do
-    append!(string: str_ptr)
-  end
-
   # TODO: String64
-  def build_item(%{push_type: Orb.I32.String} = str_ptr) do
+  def build_item(%{push_type: Orb.Constants.NulTerminatedString} = str_ptr) do
     append!(string: str_ptr)
   end
 
@@ -330,7 +334,7 @@ defmodule SilverOrb.StringBuilder do
       Memory.store!(
         I32.U8,
         @bump_offset,
-        initial + I32.when?(following <= 9, do: ?0, else: ?A - 10)
+        I32.add(initial, if(following <= 9, do: i32(?0), else: i32(?A - 10)))
       )
 
       # memory32_8![@bump_offset] =

@@ -32,6 +32,9 @@ defmodule MultiStepForm do
 
   defw to_html(), StringBuilder do
     build! do
+      # "15 in hex is: "
+      # append!(hex_upper: 15)
+
       build_step(1)
       build_step(2)
       build_step(3)
@@ -66,7 +69,6 @@ defmodule SetCookie do
   use SilverOrb.BumpAllocator
   use SilverOrb.StringBuilder
   use SilverOrb.Mem
-  use I32.String
 
   SilverOrb.BumpAllocator.export_alloc()
 
@@ -101,19 +103,19 @@ defmodule SetCookie do
     _ = @http_only
   end
 
-  defw set_cookie_name(new_value: I32.String) do
+  defw set_cookie_name(new_value: I32.UnsafePointer) do
     @name = new_value
   end
 
-  defw set_cookie_value(new_value: I32.String) do
+  defw set_cookie_value(new_value: I32.UnsafePointer) do
     @value = new_value
   end
 
-  defw set_domain(new_value: I32.String) do
+  defw set_domain(new_value: I32.UnsafePointer) do
     @domain = new_value
   end
 
-  defw set_path(new_path: I32.String) do
+  defw set_path(new_path: I32.UnsafePointer) do
     @path = new_path
   end
 
@@ -132,13 +134,13 @@ defmodule SetCookie do
       append!(ascii: ?=)
       @value
 
-      if strlen(@domain) > 0 do
+      if Memory.load!(I32.U8, @domain) !== 0 do
         # "; Domain=" <> @domain
         "; Domain="
         @domain
       end
 
-      if strlen(@path) > 0 do
+      if Memory.load!(I32.U8, @path) !== 0 do
         "; Path="
         @path
       end
@@ -191,7 +193,7 @@ defmodule StringBuilderTest do
 
   describe "SetCookie" do
     test "wasm size" do
-      assert byte_size(OrbWasmtime.Wasm.to_wasm(SetCookie)) == 824
+      assert byte_size(OrbWasmtime.Wasm.to_wasm(SetCookie)) == 759
     end
 
     test "name and value" do
