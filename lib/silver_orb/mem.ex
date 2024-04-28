@@ -38,83 +38,80 @@ defmodule SilverOrb.Mem do
 
   # export alloc, from: BumpAllocator, as: :bump_alloc
 
-  Orb.__append_body U32 do
-    # TODO: we want aligned memory so we can copy I64 by I64 at a time.
-    func memcpy(dest: I32.U8.UnsafePointer, src: I32.U8.UnsafePointer, byte_count: I32),
-      i: I32 do
-      loop EachByte do
-        return(if: I32.eq(i, byte_count))
+  defw memcpy(dest: I32.U8.UnsafePointer, src: I32.U8.UnsafePointer, byte_count: I32),
+    i: I32 do
+    loop EachByte do
+      return(if: I32.eq(i, byte_count))
 
-        dest[at!: i] = src[at!: i]
+      dest[at!: i] = src[at!: i]
 
-        i = i + 1
-        EachByte.continue()
-      end
-
-      # loop EachByte, count: byte_count do
-      #   i ->
-      #     I32.u! do
-      #       memory32_8![dest + i] = memory32_8![src + i]
-      #     end
-      # end
-
-      #         loop :each_byte do
-      #           memory32_8![I32.add(dest, i)] = memory32_8![I32.add(src, i)].unsigned
-      #
-      #           if I32.lt_u(i, byte_count) do
-      #             i = I32.add(i, 1)
-      #             :each_byte
-      #           end
-      #         end
-
-      #         loop :i do
-      #           memory32_8![I32.add(dest, i)] = memory32_8![I32.add(src, i)].unsigned
-      #
-      #           if I32.lt_u(i, byte_count) do
-      #             i = I32.add(i, 1)
-      #             {:br, :i}
-      #           end
-      #         end
-
-      #       loop i, 0..byte_count do
-      #         memory32_8![I32.add(dest, i)] = memory32_8![I32.add(src, i)].unsigned
-      #       end
-
-      #       loop i, I32.lt_u(byte_count), I32.add(1) do
-      #         memory32_8![I32.add(dest, i)] = memory32_8![I32.add(src, i)].unsigned
-      #       end
-
-      #       loop i, I32.add do
-      #         i ->
-      #           memory32_8![I32.add(dest, i)] = memory32_8![I32.add(src, i)].unsigned
-      #
-      #           I32.lt_u(i, byte_count)
-      #       end
+      i = i + 1
+      EachByte.continue()
     end
 
-    # TODO: add 32-bit-aligned version so we can use faster instructions.
-    func memset(dest: I32.U8.UnsafePointer, u8: I32.U8, byte_count: I32),
-      i: I32 do
-      loop EachByte do
-        return(if: I32.eq(i, byte_count))
+    # loop EachByte, count: byte_count do
+    #   i ->
+    #     I32.u! do
+    #       memory32_8![dest + i] = memory32_8![src + i]
+    #     end
+    # end
 
-        dest[at!: i] = u8
+    #         loop :each_byte do
+    #           memory32_8![I32.add(dest, i)] = memory32_8![I32.add(src, i)].unsigned
+    #
+    #           if I32.lt_u(i, byte_count) do
+    #             i = I32.add(i, 1)
+    #             :each_byte
+    #           end
+    #         end
 
-        i = i + 1
-        EachByte.continue()
-      end
+    #         loop :i do
+    #           memory32_8![I32.add(dest, i)] = memory32_8![I32.add(src, i)].unsigned
+    #
+    #           if I32.lt_u(i, byte_count) do
+    #             i = I32.add(i, 1)
+    #             {:br, :i}
+    #           end
+    #         end
+
+    #       loop i, 0..byte_count do
+    #         memory32_8![I32.add(dest, i)] = memory32_8![I32.add(src, i)].unsigned
+    #       end
+
+    #       loop i, I32.lt_u(byte_count), I32.add(1) do
+    #         memory32_8![I32.add(dest, i)] = memory32_8![I32.add(src, i)].unsigned
+    #       end
+
+    #       loop i, I32.add do
+    #         i ->
+    #           memory32_8![I32.add(dest, i)] = memory32_8![I32.add(src, i)].unsigned
+    #
+    #           I32.lt_u(i, byte_count)
+    #       end
+  end
+
+  # TODO: add 32-bit-aligned version so we can use faster instructions.
+  defw memset(dest: I32.U8.UnsafePointer, u8: I32.U8, byte_count: I32),
+    i: I32 do
+    loop EachByte do
+      return(if: I32.eq(i, byte_count))
+
+      dest[at!: i] = u8
+
+      i = i + 1
+      EachByte.continue()
     end
   end
 
-  def memcpy(dest, src, byte_count) do
-    Orb.DSL.typed_call(I32, :memcpy, [dest, src, byte_count])
-  end
+  # def memcpy(dest, src, byte_count) do
+  #   Orb.Instruction.typed_call(I32, [], :memcpy, [dest, src, byte_count])
+  # end
 
   def memcpy(dest: dest, src: src, byte_count: byte_count) do
-    Orb.DSL.typed_call(I32, :memcpy, [dest, src, byte_count])
+    memcpy(dest, src, byte_count)
   end
 
   def memset(dest: dest, u8: u8, byte_count: byte_count) do
-    Orb.DSL.typed_call(I32, :memset, [dest, u8, byte_count])
+    memset(dest, u8, byte_count)
   end
 end

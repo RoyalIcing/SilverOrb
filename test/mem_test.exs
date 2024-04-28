@@ -1,5 +1,6 @@
 defmodule MemTest do
   use ExUnit.Case, async: true
+  @moduletag timeout: 1000
 
   alias OrbWasmtime.{Instance, Wasm}
   alias SilverOrb.Mem
@@ -9,14 +10,6 @@ defmodule MemTest do
   test "wasm size" do
     wasm = Wasm.to_wasm(Mem)
     assert byte_size(wasm) == 138
-  end
-
-  test "convenience calls" do
-    assert Mem.memset(dest: 1, u8: 2, byte_count: 3) == %Orb.Instruction{
-             push_type: Orb.I32,
-             operation: {:call, :memset},
-             operands: [1, 2, 3]
-           }
   end
 
   test "memcpy", %{inst: inst} do

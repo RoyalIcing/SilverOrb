@@ -63,7 +63,7 @@ defmodule BumpAllocatorTest do
       Orb.include(A)
 
       defw magic(), I32 do
-        typed_call(I32, :inner_magic, [])
+        Orb.Instruction.typed_call(I32, [], :inner_magic, [])
       end
 
       BumpAllocator.export_alloc()

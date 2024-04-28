@@ -71,8 +71,6 @@ defmodule SilverOrb.StringBuilder do
   @behaviour Orb.CustomType
   @impl Orb.CustomType
   def wasm_type(), do: :i32
-  @impl Orb.CustomType
-  def byte_count(), do: 1
 
   defmodule Format do
     @moduledoc false
@@ -219,31 +217,31 @@ defmodule SilverOrb.StringBuilder do
   def append!(function, a, b, c) when is_atom(function) do
     import Orb.DSL
 
-    typed_call(I32, function, [a, b, c]) |> Orb.Stack.drop()
+    Orb.Instruction.typed_call(I32, [], function, [a, b, c]) |> Orb.Stack.drop()
   end
 
   def append!(function, a, b) when is_atom(function) do
     import Orb.DSL
 
-    typed_call(I32, function, [a, b]) |> Orb.Stack.drop()
+    Orb.Instruction.typed_call(I32, [], function, [a, b]) |> Orb.Stack.drop()
   end
 
   def append!(function, args) when is_atom(function) and is_list(args) do
     import Orb.DSL
 
-    typed_call(I32, function, args) |> Orb.Stack.drop()
+    Orb.Instruction.typed_call(I32, [], function, args) |> Orb.Stack.drop()
   end
 
   def append!(function, a) when is_atom(function) do
     import Orb.DSL
 
-    typed_call(I32, function, [a]) |> Orb.Stack.drop()
+    Orb.Instruction.typed_call(I32, [], function, [a]) |> Orb.Stack.drop()
   end
 
   def append!(function) when is_atom(function) do
     import Orb.DSL
 
-    typed_call(I32, function, []) |> Orb.Stack.drop()
+    Orb.Instruction.typed_call(I32, [], function, []) |> Orb.Stack.drop()
   end
 
   def append!(constant) when is_binary(constant) do
