@@ -39,7 +39,7 @@ defmodule SilverOrb.Sort do
             # end
           end
         ],
-        locals: [i: I32, j: I32, dup_i32: I32]
+        locals: [i: I32, j: I32]
       )
     end
   end

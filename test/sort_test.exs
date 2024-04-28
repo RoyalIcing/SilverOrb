@@ -36,21 +36,23 @@ defmodule SortTest do
           b = I32.add(0x400, I32.mul(4, I32.add(index, 1)))
 
           Orb.InstructionSequence.new(nil, [
-            # Memory.load!(I32, I32.add(0x400, I32.mul(4, index)), align: 4),
-            # Memory.load!(I32, I32.add(0x400, I32.mul(4, I32.add(index, 1))), align: 4),
-            # Memory.store!(I32, I32.add(0x400, I32.mul(4, index)), Orb.Stack.pop(I32), align: 4),
-            # Memory.store!(I32, I32.add(0x400, I32.mul(4, I32.add(index, 1))), Orb.Stack.pop(I32),
+            Orb.Stack.push Memory.load!(I32, a, align: 4) do
+              Memory.store!(I32, a, Memory.load!(I32, b, align: 4), align: 4)
+            end
+            |> then(&Memory.store!(I32, b, &1, align: 4))
+
+            # Memory.load!(I32, a, align: 4),
+            # Memory.store!(I32, a, Memory.load!(I32, b, align: 4), align: 4),
+            # Memory.store!(I32, b, Orb.Stack.pop(I32), align: 4)
+
+            # Orb.Instruction.local_set(I32, :dup_i32, Memory.load!(I32, a, align: 4)),
+            # Memory.store!(I32, a, Memory.load!(I32, b, align: 4), align: 4),
+            # Memory.store!(
+            #   I32,
+            #   b,
+            #   Orb.Instruction.local_get(I32, :dup_i32),
             #   align: 4
             # )
-
-            Orb.Instruction.local_set(I32, :dup_i32, Memory.load!(I32, a, align: 4)),
-            Memory.store!(I32, a, Memory.load!(I32, b, align: 4), align: 4),
-            Memory.store!(
-              I32,
-              b,
-              Orb.Instruction.local_get(I32, :dup_i32),
-              align: 4
-            )
           ])
         end,
         calc_gt: &I32.ge_u/2
