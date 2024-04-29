@@ -35,12 +35,7 @@ defmodule SortTest do
           a = I32.add(0x400, I32.mul(4, index))
           b = I32.add(0x400, I32.mul(4, I32.add(index, 1)))
 
-          # Memory.swap!(I32, a, b, align: 4)
-
-          Orb.Stack.push Memory.load!(I32, a, align: 4) do
-            Memory.store!(I32, a, Memory.load!(I32, b, align: 4), align: 4)
-          end
-          |> then(&Memory.store!(I32, b, &1, align: 4))
+          Memory.swap!(I32, a, b, align: 4)
         end,
         calc_gt: &I32.ge_u/2
       )
@@ -53,7 +48,6 @@ defmodule SortTest do
 
   test "bubble_sort" do
     wat = Orb.to_wat(SortIntegers)
-    # IO.puts(wat)
     instance = Instance.run(wat)
 
     assert 4 = Instance.call(instance, :read_item, 0)

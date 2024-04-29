@@ -35,8 +35,6 @@ defmodule SilverOrb.Sort do
             if i < I32.sub(count, 1) do
               BubbleSort.continue()
             end
-
-            # end
           end
         ],
         locals: [i: I32, j: I32]
