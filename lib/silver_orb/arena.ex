@@ -67,9 +67,9 @@ defmodule SilverOrb.Arena do
 
   @doc false
   defw string_equal_impl(lhs: I32.UnsafePointer, rhs: I32.UnsafePointer), I32,
-  i: I32,
-  byte_a: I32,
-  byte_b: I32 do
+    i: I32,
+    byte_a: I32,
+    byte_b: I32 do
     loop EachByte, result: I32 do
       byte_a = Memory.load!(I32.U8, I32.add(lhs, i))
       byte_b = Memory.load!(I32.U8, I32.add(rhs, i))
@@ -133,7 +133,11 @@ defmodule SilverOrb.Arena do
   Match strings to content of passed `arena_mod`.
   """
   defmacro match_string(arena_mod, result_type, do: cases) do
-    SilverOrb.Arena.inline_string_match(quote(do: unquote(arena_mod).Values.start_byte_offset()), result_type, do: cases)
+    SilverOrb.Arena.inline_string_match(
+      quote(do: unquote(arena_mod).Values.start_byte_offset()),
+      result_type,
+      do: cases
+    )
   end
 
   @doc """
@@ -146,7 +150,7 @@ defmodule SilverOrb.Arena do
   - `:pages` — The number of pages to allocate for this arena. The global memory is increased by this count.
   - `:max_pages` — The maxmimum number of pages this can increase the global memory by using `Orb.Memory.grow!/1`. Only the last arena can support `max_pages`, as otherwise multiple arenas each growing in size will end up overlapping.
   """
-  defmacro def(name, opts) do
+  defmacro def(name, opts, [do: block] \\ [do: nil]) do
     quote do
       require Orb.Memory
 
@@ -238,8 +242,13 @@ defmodule SilverOrb.Arena do
           Compares a string to the byte-contents of the arena. Returns `i32` `1` if equal, `0` if not.
           """
           defw string_equal?(str: I32.UnsafePointer), I32 do
-            SilverOrb.Arena.string_equal_impl(Values.start_byte_offset(), Instruction.local_get(I32, :str))
+            SilverOrb.Arena.string_equal_impl(
+              Values.start_byte_offset(),
+              Instruction.local_get(I32, :str)
+            )
           end
+
+          unquote(block)
         end
       end
 

@@ -30,4 +30,24 @@ defmodule SilverOrb do
   # defmacro defarena do
 
   # end
+
+  defmacro input(do: block) do
+    quote do
+      # with do
+      import SilverOrb.Input.DSL
+      unquote(block)
+      import SilverOrb.Input.DSL, only: []
+      # end
+    end
+  end
+
+  defmacro working(do: block) do
+    quote do
+      # with do
+      import SilverOrb.Working.DSL
+      unquote(block)
+      import SilverOrb.Working.DSL, only: []
+      # end
+    end
+  end
 end
