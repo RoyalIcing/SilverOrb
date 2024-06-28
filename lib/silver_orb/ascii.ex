@@ -13,12 +13,12 @@ defmodule SilverOrb.ASCII do
     # Magic transformation to convert 8 characters at once
   end
 
-  defw uppercase(range: Memory.Range) do
+  defw uppercase(range: Memory.Slice) do
     # Memory.Range.update64(&uppercase64/1)
-    Memory.Range.update(range, &uppercase8/1, i64: &uppercase64/1)
+    # Memory.Slice.update(range, &uppercase8/1, i64: &uppercase64/1)
   end
 
-  defw lowercase(range: Memory.Range) do
+  defw lowercase(range: Memory.Slice) do
     # TODO
   end
 end

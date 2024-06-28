@@ -64,9 +64,11 @@ defmodule SilverOrb.BumpAllocator do
 
   defmacro export_alloc() do
     quote do
-      Orb.__append_body do
-        %ExportAlloc{}
+      def __wasm_body__(context) do
+        super(context) ++ [%ExportAlloc{}]
       end
+
+      defoverridable __wasm_body__: 1
     end
   end
 

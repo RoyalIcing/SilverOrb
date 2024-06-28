@@ -74,7 +74,7 @@ defmodule SilverOrb.StringBuilder do
 
   defmodule Format do
     @moduledoc false
-    use Orb.Import
+    use Orb.Import, name: :format
 
     defw(f32(value: F32, str_ptr: I32.U8.UnsafePointer), I32)
   end
