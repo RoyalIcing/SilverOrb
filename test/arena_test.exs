@@ -235,10 +235,12 @@ defmodule SilverOrb.ArenaTest do
       defw(input_offset(), I32, do: Input.Values.start_page_offset() * Memory.page_byte_size())
 
       defw equal_test(), {I32, I32, I32, I32} do
-        Input.string_equal?("abc")
-        Input.string_equal?("mn")
-        Input.string_equal?("mno")
-        Input.string_equal?("mnop")
+        {
+          Input.string_equal?("abc"),
+          Input.string_equal?("mn"),
+          Input.string_equal?("mno"),
+          Input.string_equal?("mnop")
+        }
       end
 
       defw match_test(), I32 do

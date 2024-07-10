@@ -44,7 +44,7 @@ defmodule SilverOrb.StringBuilder do
     end
 
     defwp build_step(step: I32), StringBuilder, current_step?: I32 do
-      current_step? = step === Orb.Instruction.global_get(:i32, :step)
+      current_step? = step === Orb.Instruction.Global.Get.new(:i32, :step)
 
       build! do
         ~S[<div class="w-4 h-4 text-center ]
@@ -70,7 +70,7 @@ defmodule SilverOrb.StringBuilder do
 
   @behaviour Orb.CustomType
   @impl Orb.CustomType
-  def wasm_type(), do: :i32
+  def wasm_type(), do: {:i32, :i32}
 
   defmodule Format do
     @moduledoc false
@@ -112,32 +112,37 @@ defmodule SilverOrb.StringBuilder do
     @bump_write_level = @bump_write_level - 1
 
     if I32.eqz(@bump_write_level) do
-      # I32.store8(@bump_offset, 0x0)
-      # Memory.store!(I32.U8, @bump_offset, 0x0)
       Memory.store!(I32.U8, @bump_offset, 0x0)
-      # {:i32, :store8, @bump_offset, 0x0}
-      @bump_offset = I32.add(@bump_offset, 1)
+      # @bump_offset = I32.add(@bump_offset, 1)
     end
 
-    @bump_mark
+    {@bump_mark, @bump_offset - @bump_mark}
   end
 
-  defwp bump_write_str(str_ptr: I32.U8.UnsafePointer), count: I32, char: I32 do
-    return(if: I32.eq(str_ptr, @bump_mark))
+  defwp bump_write_str(str_ptr: I32.UnsafePointer, len: I32),
+    i: I32,
+    char: I32 do
+    return(if: I32.eq(str_ptr, @bump_mark) ||| I32.eqz(len))
 
     loop EachChar do
-      # char = str_ptr[at!: i]
-      char = Memory.load!(I32.U8, str_ptr + count)
+      char = Memory.load!(I32.U8, str_ptr + i)
 
-      Memory.store!(I32.U8, @bump_offset + count, char)
+      Memory.store!(I32.U8, @bump_offset + i, char)
 
-      if char do
-        count = count + 1
+      if i < len do
+        i = i + 1
         EachChar.continue()
       end
+
+      # EachChar.continue()
+      # |> if i < len do
+      #   i = i + 1
+      # end
     end
 
-    @bump_offset = @bump_offset + count
+    # Memory.store!(I32.U8, @bump_offset + len - 1, ?q)
+
+    @bump_offset = @bump_offset + len
   end
 
   defwp bump_written?(), I32 do
@@ -162,12 +167,12 @@ defmodule SilverOrb.StringBuilder do
 
   def __build_block(block) do
     items =
-      List.wrap(
-        case block do
-          {:__block__, _, items} -> items
-          term -> term
-        end
-      )
+      block
+      |> case do
+        {:__block__, _, items} -> items
+        term -> term
+      end
+      |> List.wrap()
 
     for item <- items do
       quote do
@@ -184,29 +189,37 @@ defmodule SilverOrb.StringBuilder do
     end
   end
 
+  def build_item("") do
+    Orb.InstructionSequence.empty()
+  end
+
   def build_item(string) when is_binary(string) do
     append!(string: string)
   end
 
-  def build_item(%Orb.Constants.NulTerminatedString{string: ""}) do
+  def build_item(%Orb.Str{string: ""}) do
     Orb.InstructionSequence.empty()
   end
 
-  def build_item(%Orb.Constants.NulTerminatedString{} = term) do
-    append!(string: term)
+  def build_item(%Orb.Str{} = term) do
+    append!(string: term |> dbg())
   end
 
-  def build_item(%{push_type: __MODULE__} = str_ptr) do
-    append!(string: str_ptr)
+  def build_item(%{push_type: __MODULE__} = string_builder_call) do
+    # Orb.Stack.drop(string_builder_call)
+    %Orb.Stack.Drop{
+      instruction: string_builder_call,
+      count: 2
+    }
   end
 
   # TODO: String64
-  def build_item(%{push_type: Orb.Constants.NulTerminatedString} = str_ptr) do
-    append!(string: str_ptr)
+  def build_item(%{push_type: Orb.Str} = str_ptr) do
+    append!(string: str_ptr |> dbg())
   end
 
   def build_item(%struct{push_type: type} = instruction)
-      when struct in [Orb.Instruction, Orb.VariableReference] and type in [:f32, Orb.F32, F32] do
+      when struct in [Orb.Instruction, Orb.VariableReference] and type in [:f32, Orb.F32] do
     append!(decimal_f32: instruction)
   end
 
@@ -245,19 +258,51 @@ defmodule SilverOrb.StringBuilder do
   end
 
   def append!(constant) when is_binary(constant) do
-    bump_write_str(constant)
+    _ = &bump_write_str/2
+
+    Orb.InstructionSequence.new(nil, [
+      constant,
+      Orb.Instruction.typed_call(
+        nil,
+        [I32.UnsafePointer, I32],
+        :bump_write_str,
+        []
+      )
+    ])
+
+    # bump_write_str(constant)
   end
 
-  def append!(%Orb.Constants.NulTerminatedString{string: ""}) do
-    :nop
+  def append!(%Orb.Str{string: ""}) do
+    Orb.InstructionSequence.empty()
   end
 
-  def append!(%Orb.Constants.NulTerminatedString{} = str_ptr) do
-    bump_write_str(str_ptr)
+  def append!(%Orb.Str{} = str) do
+    Orb.InstructionSequence.new(nil, [
+      str,
+      Orb.Instruction.typed_call(
+        nil,
+        [:i32, :i32],
+        :bump_write_str,
+        []
+      )
+    ])
+
+    # bump_write_str(str)
   end
 
-  def append!(string: str_ptr) do
-    bump_write_str(str_ptr)
+  def append!(string: str) do
+    Orb.InstructionSequence.new(nil, [
+      str,
+      Orb.Instruction.typed_call(
+        nil,
+        [:i32, :i32],
+        :bump_write_str,
+        []
+      )
+    ])
+
+    # bump_write_str(str)
   end
 
   def append!(u8: char) do

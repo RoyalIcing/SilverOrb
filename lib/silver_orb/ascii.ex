@@ -14,7 +14,7 @@ defmodule SilverOrb.ASCII do
   end
 
   defw uppercase(range: Memory.Slice) do
-    # Memory.Range.update64(&uppercase64/1)
+    # Memory.Slice.update64(&uppercase64/1)
     # Memory.Slice.update(range, &uppercase8/1, i64: &uppercase64/1)
   end
 

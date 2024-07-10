@@ -29,12 +29,12 @@ defmodule SilverOrb.Arena do
   alias Orb.Instruction
 
   @doc false
-  def alloc_impl(values_mod, byte_count) do
+  def alloc_inlined(values_mod, byte_count) do
     offset_global_name = values_mod.offset_global_name()
     max_end_page_offset = values_mod.max_end_page_offset()
 
     Orb.snippet Orb.U32, new_ptr: I32.UnsafePointer do
-      new_ptr = Instruction.global_get(Orb.I32, offset_global_name)
+      new_ptr = Instruction.Global.Get.new(Orb.I32, offset_global_name)
 
       # TODO: we need an option for alignment.
       if new_ptr + byte_count > max_end_page_offset * Memory.page_byte_size() do
@@ -52,7 +52,7 @@ defmodule SilverOrb.Arena do
   end
 
   @doc false
-  def rewind_impl(values_mod) do
+  def rewind_inlined(values_mod) do
     offset_global_name = values_mod.offset_global_name()
     start_page_offset = values_mod.start_page_offset()
 
@@ -66,14 +66,15 @@ defmodule SilverOrb.Arena do
   end
 
   @doc false
-  defw string_equal_impl(lhs: I32.UnsafePointer, rhs: I32.UnsafePointer), I32,
-  i: I32,
-  byte_a: I32,
-  byte_b: I32 do
+  defw string_equal_impl(lhs: I32.UnsafePointer, rhs: Orb.Memory.Slice), I32,
+    i: I32,
+    byte_a: I32,
+    byte_b: I32 do
     loop EachByte, result: I32 do
       byte_a = Memory.load!(I32.U8, I32.add(lhs, i))
-      byte_b = Memory.load!(I32.U8, I32.add(rhs, i))
+      byte_b = Memory.load!(I32.U8, rhs |> Orb.Memory.Slice.get_byte_offset() |> I32.add(i))
 
+      # TODO: allow nul bytes
       if I32.eqz(byte_a) do
         return(I32.eqz(byte_b))
       end
@@ -87,7 +88,7 @@ defmodule SilverOrb.Arena do
     end
   end
 
-  def inline_string_match(value, result_type, do: cases) do
+  def inline_string_match(mod, result_type, do: cases) do
     statements =
       for {:->, _, [input, target]} <- cases do
         case input do
@@ -102,7 +103,7 @@ defmodule SilverOrb.Arena do
             quote do
               Orb.IfElse.new(
                 nil,
-                unquote(__MODULE__).string_equal_impl(unquote(value), unquote(match)),
+                unquote(mod).string_equal?(unquote(match)),
                 Orb.InstructionSequence.new([
                   Orb.InstructionSequence.new(unquote(Orb.__get_block_items(target))),
                   Orb.Control.break(:arena_string_match)
@@ -133,7 +134,11 @@ defmodule SilverOrb.Arena do
   Match strings to content of passed `arena_mod`.
   """
   defmacro match_string(arena_mod, result_type, do: cases) do
-    SilverOrb.Arena.inline_string_match(quote(do: unquote(arena_mod).Values.start_byte_offset()), result_type, do: cases)
+    SilverOrb.Arena.inline_string_match(
+      arena_mod,
+      result_type,
+      do: cases
+    )
   end
 
   @doc """
@@ -222,7 +227,7 @@ defmodule SilverOrb.Arena do
           See also: https://man7.org/linux/man-pages/man3/alloca.3.html
           """
           defw alloc!(byte_count: I32), I32.UnsafePointer, new_ptr: I32.UnsafePointer do
-            SilverOrb.Arena.alloc_impl(Values, Instruction.local_get(I32, :byte_count))
+            SilverOrb.Arena.alloc_inlined(Values, Instruction.local_get(I32, :byte_count))
           end
 
           @doc """
@@ -231,14 +236,25 @@ defmodule SilverOrb.Arena do
           Note: The memory is not zeroed out.
           """
           defw rewind() do
-            SilverOrb.Arena.rewind_impl(Values)
+            SilverOrb.Arena.rewind_inlined(Values)
           end
 
           @doc """
-          Compares a string to the byte-contents of the arena. Returns `i32` `1` if equal, `0` if not.
+          Compares a string byte-by-byte to the contents of the arena. Returns `i32` `1` if equal, `0` if not.
           """
-          defw string_equal?(str: I32.UnsafePointer), I32 do
-            SilverOrb.Arena.string_equal_impl(Values.start_byte_offset(), Instruction.local_get(I32, :str))
+          def string_equal?(%Orb.Str{} = str) do
+            str |> Orb.Str.to_slice() |> string_equal?()
+          end
+
+          def string_equal?(string) when is_binary(string) do
+            string |> Orb.Str.to_slice() |> string_equal?()
+          end
+
+          defw string_equal?(slice: Orb.Memory.Slice), I32 do
+            SilverOrb.Arena.string_equal_impl(
+              Values.start_byte_offset(),
+              Instruction.local_get(Orb.Memory.Slice, :slice)
+            )
           end
         end
       end
