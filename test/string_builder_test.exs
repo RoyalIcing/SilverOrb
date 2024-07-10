@@ -48,15 +48,15 @@ defmodule MultiStepForm do
     # current_step? = @step === step
 
     build! do
-      ~S[<div class="w-4 h-4 text-center ]
+      ~S|<div class="w-4 h-4 text-center |
 
       if current_step? do
-        ~S[bg-blue-600 text-white]
+        ~S|bg-blue-600 text-white|
       else
-        ~S[text-black]
+        ~S|text-black|
       end
 
-      ~S[">]
+      ~S|">|
       # Format.Decimal.u32(step)
       append!(decimal_u32: step)
       ~s|</div>\n|
