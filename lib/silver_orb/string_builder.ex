@@ -79,6 +79,7 @@ defmodule SilverOrb.StringBuilder do
     defw(f32(value: F32, str_ptr: I32.U8.UnsafePointer), I32)
   end
 
+  # I32.global(bump_offset: 0, bump_mark: 0, bump_write_level: 0)
   I32.global(bump_write_level: 0)
 
   defmacro __using__(_) do
@@ -95,12 +96,15 @@ defmodule SilverOrb.StringBuilder do
       #   @bump_write_level 0
       # end
 
+      # I32.global(bump_offset: 0, bump_mark: 0, bump_write_level: 0)
       I32.global(bump_write_level: 0)
     end
   end
 
   defwp bump_write_start() do
     if I32.eqz(@bump_write_level) do
+      # TODO: refactor based on Arena instead of BumpAllocator
+      @bump_offset = SilverOrb.BumpAllocator.Constants.bump_init_offset()
       @bump_mark = @bump_offset
     end
 
@@ -110,11 +114,6 @@ defmodule SilverOrb.StringBuilder do
   defwp bump_write_done(), __MODULE__ do
     assert!(@bump_write_level > 0)
     @bump_write_level = @bump_write_level - 1
-
-    if I32.eqz(@bump_write_level) do
-      Memory.store!(I32.U8, @bump_offset, 0x0)
-      # @bump_offset = I32.add(@bump_offset, 1)
-    end
 
     {@bump_mark, @bump_offset - @bump_mark}
   end

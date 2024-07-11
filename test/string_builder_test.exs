@@ -245,8 +245,6 @@ defmodule StringBuilderTest do
       end
 
       defw text_html(), StringBuilder do
-        free_all()
-
         StringBuilder.build! do
           """
           <!doctype html>
@@ -283,6 +281,15 @@ defmodule StringBuilderTest do
                <meta charset="utf-8">
                <h1>Hello 🌛 moonlit world</h1>
                """
+
+      Enum.each(0..10000, fn _ ->
+        assert get_html.() ==
+                 ~S"""
+                 <!doctype html>
+                 <meta charset="utf-8">
+                 <h1>Hello 🌛 moonlit world</h1>
+                 """
+      end)
     end
   end
 
