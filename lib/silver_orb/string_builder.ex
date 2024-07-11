@@ -186,9 +186,6 @@ defmodule SilverOrb.StringBuilder do
     for item <- items do
       quote do
         with do
-          # import Kernel, except: [if: 2]
-          # import Kernel, except: [@: 1]
-          # import Kernel
           import Orb.IfElse.DSL, only: []
           import unquote(__MODULE__).DSL
 
