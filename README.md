@@ -1,12 +1,10 @@
-# SilverOrb
+<h1 align="center">🕸️🔋 SilverOrb: the standard library for <a href="https://github.com/RoyalIcing/Orb">Orb</a></h1>
 
-A standard library for Orb.
-
-The docs can be found at <https://hexdocs.pm/silver_orb>.
+<p dir="ltr" align="center"><a href="https://hexdocs.pm/silver_orb" rel="nofollow">Docs</a></p>
 
 WebAssembly is low level — you essentially get to define global variables, an array of memory, and some functions to operate on them. It’s not batteries-included.
 
-SilverOrb provides several extra batteries so common tasks are easier. They are:
+SilverOrb provides these batteries so common tasks are easier. They are:
 
 - `StringBuilder` for assembling strings from dynamic parts.
 - `IntFormatter` for converting integers to strings.
