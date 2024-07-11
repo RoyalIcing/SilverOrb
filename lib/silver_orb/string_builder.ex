@@ -87,9 +87,9 @@ defmodule SilverOrb.StringBuilder do
       use SilverOrb.IntFormatter
 
       Orb.include(unquote(__MODULE__))
-      import unquote(__MODULE__)
 
-      alias SilverOrb.StringBuilder
+      require alias unquote(__MODULE__)
+      import unquote(__MODULE__)
 
       # global do
       #   @bump_write_level 0
