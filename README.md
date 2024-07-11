@@ -8,18 +8,18 @@ WebAssembly is low level — you essentially get to define global variables, an
 
 SilverOrb provides several extra batteries so common tasks are easier. They are:
 
+- `StringBuilder` for assembling strings from dynamic parts.
+- `IntFormatter` for converting integers to strings.
 - `Arena` allocator for memory management.
 - `ASCII` (coming soon) for operating on ASCII strings.
 - `UTF8` (coming soon) for operating on UTF-8 strings.
-- `IntFormatter` for converting integers to strings.
 - `IntParser` (coming soon) for converting strings to integers.
-- `StringBuilder` for assembling strings from dynamic parts.
 - `XMLBuilder` (coming soon) for assembling XML from dynamic parts.
 - `FormData` (coming soon) for decoding/encoding `application/x-www-form-urlencoded` strings.
 - `URLSearchParams` (coming soon) for decoding/encoding URL query strings.
 - `URL` (coming soon) for decoding/encoding URLs.
-- `Request` (coming soon) for encoding HTTP/1 requests.
-- `Response` (coming soon) for encoding HTTP/1 responses.
+- `Request` (later) for encoding HTTP/1 requests.
+- `Response` (later) for encoding HTTP/1 responses.
 - `Iterator` (coming soon) for creating a custom sequence type that can be iterated through.
 
 ## Installation
