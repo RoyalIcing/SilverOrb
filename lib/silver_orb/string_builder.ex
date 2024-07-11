@@ -83,7 +83,7 @@ defmodule SilverOrb.StringBuilder do
 
   defmacro __using__(_) do
     quote do
-      use SilverOrb.Mem
+      # use SilverOrb.Mem
       use SilverOrb.IntFormatter
 
       Orb.include(unquote(__MODULE__))
