@@ -2,7 +2,6 @@ defmodule MultiStepForm do
   # See: https://buildui.com/courses/framer-motion-recipes/multistep-wizard
 
   use Orb
-  use SilverOrb.BumpAllocator
   use SilverOrb.StringBuilder
 
   global do
@@ -207,7 +206,6 @@ defmodule StringBuilderTest do
   describe "Composable HTML components" do
     defmodule HelloWorldComponent do
       use Orb
-      use SilverOrb.BumpAllocator
       use SilverOrb.StringBuilder
 
       defwp daytime?(hour_of_day: I32), I32 do
@@ -231,7 +229,6 @@ defmodule StringBuilderTest do
 
     defmodule DynamicHTMLPage do
       use Orb
-      use SilverOrb.BumpAllocator
       use SilverOrb.StringBuilder
 
       Orb.include(HelloWorldComponent)

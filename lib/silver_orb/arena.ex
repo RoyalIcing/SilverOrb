@@ -158,6 +158,7 @@ defmodule SilverOrb.Arena do
       module_name = Module.concat(__MODULE__, unquote(name))
       page_count = unquote(opts[:pages])
       max_page_count = unquote(opts[:max_pages])
+      # FIXME: this doesn’t include pages used by constants.
       page_offset = Orb.Memory.pages(page_count)
       end_page_offset = page_offset + page_count
       max_end_page_offset = page_offset + (max_page_count || page_count)

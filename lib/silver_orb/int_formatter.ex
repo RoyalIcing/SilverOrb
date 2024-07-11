@@ -1,6 +1,6 @@
 defmodule SilverOrb.IntFormatter do
   use Orb
-  use SilverOrb.BumpAllocator
+  # use SilverOrb.BumpAllocator
 
   defmacro __using__(_) do
     quote do

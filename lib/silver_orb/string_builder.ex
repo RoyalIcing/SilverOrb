@@ -5,7 +5,6 @@ defmodule SilverOrb.StringBuilder do
   ```elixir
   defmodule MultiStepForm do
     use Orb
-    use SilverOrb.BumpAllocator
     use SilverOrb.StringBuilder
 
     global do
@@ -65,7 +64,7 @@ defmodule SilverOrb.StringBuilder do
   """
 
   use Orb
-  use SilverOrb.BumpAllocator
+  # use SilverOrb.BumpAllocator
   # use SilverOrb.Mem
 
   @behaviour Orb.CustomType
@@ -80,7 +79,20 @@ defmodule SilverOrb.StringBuilder do
   end
 
   # I32.global(bump_offset: 0, bump_mark: 0, bump_write_level: 0)
-  I32.global(bump_write_level: 0)
+
+  defmodule Constants do
+    def init_offset() do
+      1 * Memory.page_byte_size()
+    end
+  end
+
+  Memory.pages(2)
+
+  I32.global(
+    bump_offset: Constants.init_offset(),
+    bump_mark: 0,
+    bump_write_level: 0
+  )
 
   defmacro __using__(_) do
     quote do
@@ -96,15 +108,20 @@ defmodule SilverOrb.StringBuilder do
       #   @bump_write_level 0
       # end
 
-      # I32.global(bump_offset: 0, bump_mark: 0, bump_write_level: 0)
-      I32.global(bump_write_level: 0)
+      Memory.pages(2)
+
+      I32.global(
+        bump_offset: Constants.init_offset(),
+        bump_mark: 0,
+        bump_write_level: 0
+      )
     end
   end
 
   defwp bump_write_start() do
     if I32.eqz(@bump_write_level) do
-      # TODO: refactor based on Arena instead of BumpAllocator
-      @bump_offset = SilverOrb.BumpAllocator.Constants.bump_init_offset()
+      # TODO: refactor based on Arena instead?
+      @bump_offset = Constants.init_offset()
       @bump_mark = @bump_offset
     end
 
@@ -305,7 +322,7 @@ defmodule SilverOrb.StringBuilder do
   end
 
   def append!(u8: char) do
-    snippet U32 do
+    Orb.snippet U32 do
       Memory.store!(I32.U8, @bump_offset, char)
       # {:i32, :store8, @bump_offset, char}
       @bump_offset = @bump_offset + 1
@@ -315,7 +332,7 @@ defmodule SilverOrb.StringBuilder do
   def append!(ascii: char), do: append!(u8: char)
 
   def append!(decimal_u32: int) do
-    snippet do
+    Orb.snippet do
       @bump_offset = SilverOrb.IntFormatter.format_u32(int, @bump_offset)
     end
   end
@@ -338,7 +355,7 @@ defmodule SilverOrb.StringBuilder do
           {hex, hex}
       end
 
-    snippet U32 do
+    Orb.snippet U32 do
       # push(hex)
       #
       # push(I32.le_u(hex, 9))
