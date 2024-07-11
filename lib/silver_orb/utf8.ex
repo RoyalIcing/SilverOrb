@@ -71,7 +71,7 @@ defmodule SilverOrb.UTF8 do
 
         # 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
         I32.band(byte0, 0xF8) === 0xF0 ->
-          unless I32.add(i, 3) < str_len do
+          if i + 3 >= str_len do
             return(0)
           end
 
