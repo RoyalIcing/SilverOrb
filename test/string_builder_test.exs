@@ -216,11 +216,15 @@ defmodule StringBuilderTest do
 
       defw render(hour_of_day: I32), StringBuilder do
         StringBuilder.build! do
+          "<h1>"
+
           if daytime?(hour_of_day) do
-            "<h1>Hello 🌞 sunny world</h1>"
+            "Hello 🌞 sunny world"
           else
-            "<h1>Hello 🌛 moonlit world</h1>"
+            "Hello 🌛 moonlit world"
           end
+
+          "</h1>\n"
         end
       end
     end
@@ -250,8 +254,6 @@ defmodule StringBuilderTest do
           """
 
           HelloWorldComponent.render(@hour_of_day)
-
-          "\n"
         end
       end
     end
