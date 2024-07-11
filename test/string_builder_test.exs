@@ -28,12 +28,14 @@ defmodule MultiStepForm do
   defw(previous_step(), do: change_step(@step - 1))
   defw(jump_to_step(step: I32), do: change_step(step))
 
-  defw(to_string(), StringBuilder, do: to_html())
+  defw(to_string, StringBuilder, do: text_html())
 
-  defw to_html(), StringBuilder do
+  defw text_html, StringBuilder do
     build! do
       # "15 in hex is: "
       # append!(hex_upper: 15)
+
+      "<h1>Step by step ✨</h1>\n"
 
       build_step(1)
       build_step(2)
@@ -173,6 +175,7 @@ defmodule StringBuilderTest do
 
       assert html ==
                ~S"""
+               <h1>Step by step ✨</h1>
                <div class="w-4 h-4 text-center bg-blue-600 text-white">1</div>
                <div class="w-4 h-4 text-center text-black">2</div>
                <div class="w-4 h-4 text-center text-black">3</div>
@@ -191,6 +194,7 @@ defmodule StringBuilderTest do
 
       assert html ==
                ~S"""
+               <h1>Step by step ✨</h1>
                <div class="w-4 h-4 text-center text-black">1</div>
                <div class="w-4 h-4 text-center text-black">2</div>
                <div class="w-4 h-4 text-center bg-blue-600 text-white">3</div>
