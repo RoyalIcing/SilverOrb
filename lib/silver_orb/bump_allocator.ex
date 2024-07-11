@@ -12,8 +12,7 @@ defmodule SilverOrb.BumpAllocator do
   """
 
   defmodule Constants do
-    @page_size 64 * 1024
-    @bump_start 1 * @page_size
+    @bump_start 1 * Orb.Memory.page_byte_size()
     def bump_init_offset(), do: @bump_start
   end
 
