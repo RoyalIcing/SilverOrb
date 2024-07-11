@@ -85,10 +85,10 @@ defmodule SilverOrb.UTF8 do
           # end
 
           # Check for overlong encoding
-          if (byte0 === 0xF0 &&& I32.lt_u(I32.band(byte1, 0xF0), 0x90)) or
-               (byte0 === 0xF4 &&& I32.gt_u(I32.band(byte1, 0xF0), 0x8F)) do
-            return(0)
-          end
+          # if (byte0 === 0xF0 &&& I32.lt_u(I32.band(byte1, 0xF0), 0x90)) or
+          #      (byte0 === 0xF4 &&& I32.gt_u(I32.band(byte1, 0xF0), 0x8F)) do
+          #   return(0)
+          # end
 
           unless I32.band(byte1, 0xC0) === 0x80 &&&
                    I32.band(byte2, 0xC0) === 0x80 &&&
