@@ -17,7 +17,7 @@ defmodule SilverOrb.MixProject do
       name: "SilverOrb",
       docs: docs(),
       source_url: @source_url,
-      homepage_url: "https://calculated.world/orb"
+      homepage_url: "https://useorb.dev/"
     ]
   end
 
