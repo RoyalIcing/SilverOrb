@@ -6,7 +6,7 @@ WebAssembly is low level — you essentially get to define global variables, an
 
 SilverOrb provides these batteries so common tasks are easier. They are:
 
-- `StringBuilder` for assembling strings from dynamic parts.
+- [`StringBuilder`](https://hexdocs.pm/silver_orb/SilverOrb.StringBuilder.html) for assembling strings from dynamic parts.
 - `IntFormatter` for converting integers to strings.
 - `Arena` allocator for memory management.
 - `ASCII` (coming soon) for operating on ASCII strings.
