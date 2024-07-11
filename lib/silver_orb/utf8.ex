@@ -11,13 +11,14 @@ defmodule SilverOrb.UTF8 do
     byte2: I32.U8,
     byte3: I32.U8 do
     loop Validate do
+      # We got to the end!
       if i === str_len do
         return(1)
       end
 
-      if i > str_len do
-        return(0)
-      end
+      # if i > str_len do
+      #   return(0)
+      # end
 
       byte0 = Memory.load!(I32.U8, str_ptr + i)
 
