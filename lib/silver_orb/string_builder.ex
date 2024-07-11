@@ -66,7 +66,7 @@ defmodule SilverOrb.StringBuilder do
 
   use Orb
   use SilverOrb.BumpAllocator
-  use SilverOrb.Mem
+  # use SilverOrb.Mem
 
   @behaviour Orb.CustomType
   @impl Orb.CustomType

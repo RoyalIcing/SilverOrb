@@ -204,6 +204,86 @@ defmodule StringBuilderTest do
     end
   end
 
+  describe "Composable HTML components" do
+    defmodule HelloWorldComponent do
+      use Orb
+      use SilverOrb.BumpAllocator
+      use SilverOrb.StringBuilder
+
+      defwp daytime?(hour_of_day: I32), I32 do
+        hour_of_day >= 6 &&& hour_of_day <= 19
+      end
+
+      defw render(hour_of_day: I32), StringBuilder do
+        StringBuilder.build! do
+          if daytime?(hour_of_day) do
+            "<h1>Hello 🌞 sunny world</h1>"
+          else
+            "<h1>Hello 🌛 moonlit world</h1>"
+          end
+        end
+      end
+    end
+
+    defmodule DynamicHTMLPage do
+      use Orb
+      use SilverOrb.BumpAllocator
+      use SilverOrb.StringBuilder
+
+      Orb.include(HelloWorldComponent)
+
+      global do
+        @hour_of_day 8
+      end
+
+      defw set_hour_of_day(hour: I32) do
+        @hour_of_day = hour
+      end
+
+      defw text_html(), StringBuilder do
+        free_all()
+
+        StringBuilder.build! do
+          """
+          <!doctype html>
+          <meta charset="utf-8">
+          """
+
+          HelloWorldComponent.render(@hour_of_day)
+
+          "\n"
+        end
+      end
+    end
+
+    test "renders html" do
+      wat = Orb.to_wat(DynamicHTMLPage)
+      # IO.puts(wat)
+      instance = Instance.run(wat)
+
+      get_html = fn ->
+        {ptr, len} = Instance.call(instance, :text_html)
+        Instance.read_memory(instance, ptr, len)
+      end
+
+      assert get_html.() ==
+               ~S"""
+               <!doctype html>
+               <meta charset="utf-8">
+               <h1>Hello 🌞 sunny world</h1>
+               """
+
+      Instance.call(instance, :set_hour_of_day, 2)
+
+      assert get_html.() ==
+               ~S"""
+               <!doctype html>
+               <meta charset="utf-8">
+               <h1>Hello 🌛 moonlit world</h1>
+               """
+    end
+  end
+
   describe "SetCookie" do
     @describetag :skip
     test "wasm size" do
