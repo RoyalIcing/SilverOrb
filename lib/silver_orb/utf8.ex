@@ -4,6 +4,7 @@ defmodule SilverOrb.UTF8 do
   Memory.pages(2)
 
   # defw valid?(str_ptr: Str.Pointer, str_len: Str.Length), I32 do
+  # defw valid?(str: Str), I32,
   defw valid?(str_ptr: I32.UnsafePointer, str_len: I32), I32,
     i: I32,
     byte0: I32.U8,
@@ -45,7 +46,7 @@ defmodule SilverOrb.UTF8 do
             return(0)
           end
 
-          i = I32.add(i, 2)
+          i = i + 2
           Validate.continue()
 
         # 1110xxxx 10xxxxxx 10xxxxxx
@@ -67,7 +68,7 @@ defmodule SilverOrb.UTF8 do
             return(0)
           end
 
-          i = I32.add(i, 3)
+          i = i + 3
           Validate.continue()
 
         # 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
@@ -97,7 +98,7 @@ defmodule SilverOrb.UTF8 do
             return(0)
           end
 
-          i = I32.add(i, 4)
+          i = i + 4
           Validate.continue()
 
         # Invalid UTF-8 byte
