@@ -78,10 +78,9 @@ defmodule UTF8Test do
 
   defp check_valid?(i, s) when is_binary(s) do
     input_ptr = Orb.Memory.page_byte_size()
-
     bytes = s |> :binary.bin_to_list()
-    Instance.write_memory(i, input_ptr, bytes)
 
+    Instance.write_memory(i, input_ptr, bytes)
     Instance.call(i, :valid?, input_ptr, length(bytes))
   end
 end
