@@ -1,6 +1,7 @@
 defmodule SilverOrb.UTF8 do
   use Orb
 
+  # Used for testing
   Memory.pages(2)
 
   # defw valid?(str_ptr: Str.Pointer, str_len: Str.Length), I32 do
