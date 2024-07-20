@@ -44,6 +44,17 @@ defmodule MenuButton do
     end
   end
 
+  defw focus_previous_item() do
+    @active_item_index =
+      if @active_item_index > 1 do
+        @active_item_index - 1
+      else
+        @item_count
+      end
+
+    @focus_enum = FocusEnum.menu()
+  end
+
   defw focus_next_item() do
     @active_item_index = @active_item_index + 1
 
@@ -79,7 +90,7 @@ defmodule MenuButton do
 
   defwp button(), StringBuilder do
     build! do
-      ~S|<button type="button" data-action="toggle" data-keydown-arrow-down id="|
+      ~S|<button type="button" id="|
       button_id()
       ~S|" aria-haspopup="true" aria-expanded="|
 
@@ -91,7 +102,9 @@ defmodule MenuButton do
 
       ~S|" aria-controls="|
       menu_id()
-      ~S|">|
+
+      ~S|" data-action="toggle" data-keydown-arrow-down data-keydown-arrow-up="focus_previous_item">|
+
       "\n"
     end
   end
@@ -110,7 +123,7 @@ defmodule MenuButton do
         menu_item_id(@active_item_index)
       end
 
-      ~S|">|
+      ~S|" data-keydown-escape="close" data-keydown-arrow-down="focus_previous_item" data-keydown-arrow-down="focus_next_item">|
       "\n"
 
       loop EachItem, result: StringBuilder do
@@ -179,8 +192,6 @@ defmodule MenuButton do
       """
     end
   end
-
-  # |> export("text/html")
 end
 
 defmodule AriaWidgetsTest do
@@ -203,8 +214,8 @@ defmodule AriaWidgetsTest do
       html = read_string(instance, :text_html)
 
       assert html === ~H"""
-             <button type="button" data-action="toggle" data-keydown-arrow-down id="menubutton:1" aria-haspopup="true" aria-expanded="false" aria-controls="menu:1">
-             <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="">
+             <button type="button" id="menubutton:1" aria-haspopup="true" aria-expanded="false" aria-controls="menu:1" data-action="toggle" data-keydown-arrow-down data-keydown-arrow-up="focus_previous_item">
+             <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="" data-keydown-escape="close" data-keydown-arrow-down="focus_previous_item" data-keydown-arrow-down="focus_next_item">
              <li role="menuitem" id="menuitem:1.1" data-action="activate_item:[1]">Action 1</li>
              <li role="menuitem" id="menuitem:1.2" data-action="activate_item:[2]">Action 2</li>
              <li role="menuitem" id="menuitem:1.3" data-action="activate_item:[3]">Action 3</li>
@@ -214,7 +225,7 @@ defmodule AriaWidgetsTest do
       assert read_string(instance, :focus_id) === ""
     end
 
-    test "read ids", %{instance: instance} do
+    test "can read ids", %{instance: instance} do
       assert read_string(instance, :button_id) === "menubutton:1"
       assert read_string(instance, :menu_id) === "menu:1"
     end
@@ -232,8 +243,8 @@ defmodule AriaWidgetsTest do
       html = read_string(instance, :text_html)
 
       assert html === ~H"""
-             <button type="button" data-action="toggle" data-keydown-arrow-down id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1">
-             <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="menuitem:1.1">
+             <button type="button" id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1" data-action="toggle" data-keydown-arrow-down data-keydown-arrow-up="focus_previous_item">
+             <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="menuitem:1.1" data-keydown-escape="close" data-keydown-arrow-down="focus_previous_item" data-keydown-arrow-down="focus_next_item">
              <li role="menuitem" id="menuitem:1.1" data-action="activate_item:[1]">Action 1</li>
              <li role="menuitem" id="menuitem:1.2" data-action="activate_item:[2]">Action 2</li>
              <li role="menuitem" id="menuitem:1.3" data-action="activate_item:[3]">Action 3</li>
@@ -250,8 +261,8 @@ defmodule AriaWidgetsTest do
       assert read_string(instance, :focus_id) === "menu:1"
 
       assert read_string(instance, :text_html) === ~H"""
-             <button type="button" data-action="toggle" data-keydown-arrow-down id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1">
-             <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="menuitem:1.2">
+             <button type="button" id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1" data-action="toggle" data-keydown-arrow-down data-keydown-arrow-up="focus_previous_item">
+             <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="menuitem:1.2" data-keydown-escape="close" data-keydown-arrow-down="focus_previous_item" data-keydown-arrow-down="focus_next_item">
              <li role="menuitem" id="menuitem:1.1" data-action="activate_item:[1]">Action 1</li>
              <li role="menuitem" id="menuitem:1.2" data-action="activate_item:[2]">Action 2</li>
              <li role="menuitem" id="menuitem:1.3" data-action="activate_item:[3]">Action 3</li>
@@ -259,7 +270,21 @@ defmodule AriaWidgetsTest do
              """
     end
 
-    test "focus next wraps", %{instance: instance} do
+    test "button arrow up", %{instance: instance} do
+      Instance.call(instance, :focus_previous_item)
+      assert read_string(instance, :focus_id) === "menu:1"
+
+      assert read_string(instance, :text_html) === ~H"""
+             <button type="button" id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1" data-action="toggle" data-keydown-arrow-down data-keydown-arrow-up="focus_previous_item">
+             <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="menuitem:1.3" data-keydown-escape="close" data-keydown-arrow-down="focus_previous_item" data-keydown-arrow-down="focus_next_item">
+             <li role="menuitem" id="menuitem:1.1" data-action="activate_item:[1]">Action 1</li>
+             <li role="menuitem" id="menuitem:1.2" data-action="activate_item:[2]">Action 2</li>
+             <li role="menuitem" id="menuitem:1.3" data-action="activate_item:[3]">Action 3</li>
+             </ul>
+             """
+    end
+
+    test "focus next/previous wraps", %{instance: instance} do
       Instance.call(instance, :toggle)
       assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.1"|
       Instance.call(instance, :focus_next_item)
@@ -268,6 +293,10 @@ defmodule AriaWidgetsTest do
       assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.3"|
       Instance.call(instance, :focus_next_item)
       assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.1"|
+      Instance.call(instance, :focus_previous_item)
+      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.3"|
+      Instance.call(instance, :focus_previous_item)
+      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.2"|
     end
   end
 
