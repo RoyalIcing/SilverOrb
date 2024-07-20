@@ -28,14 +28,13 @@ defmodule SilverOrb.IntFormatter do
     digit_count
   end
 
-  defw format_u32(value: I32, str_ptr: I32.U8.UnsafePointer),
-       I32.U8.UnsafePointer,
-       working_offset: I32.U8.UnsafePointer,
-       last_offset: I32,
-       digit: I32 do
-    last_offset = I32.add(str_ptr, format_u32_char_count(value))
+  defw format_u32(value: I32, str_ptr: I32.U8.UnsafePointer), Str,
+    working_offset: I32.U8.UnsafePointer,
+    len: I32,
+    digit: I32 do
+    len = format_u32_char_count(value)
     # We then start from the back, as we have to print the digits in reverse.
-    working_offset = last_offset
+    working_offset = str_ptr + len
 
     loop Digits do
       working_offset = I32.sub(working_offset, 1)
@@ -47,6 +46,6 @@ defmodule SilverOrb.IntFormatter do
       Digits.continue(if: I32.gt_u(value, 0))
     end
 
-    last_offset
+    {str_ptr, len}
   end
 end

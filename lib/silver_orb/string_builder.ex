@@ -221,7 +221,7 @@ defmodule SilverOrb.StringBuilder do
 
   # TODO: String64
   def build_item(%{push_type: Orb.Str} = str_ptr) do
-    append!(string: str_ptr |> dbg())
+    append!(string: str_ptr)
   end
 
   def build_item(%struct{push_type: type} = instruction)
@@ -323,7 +323,16 @@ defmodule SilverOrb.StringBuilder do
 
   def append!(decimal_u32: int) do
     Orb.snippet do
-      @bump_offset = SilverOrb.IntFormatter.format_u32(int, @bump_offset)
+      # Orb.Stack.drop(Orb.I32)
+      # mut!(@bump_offset).write
+
+      Orb.InstructionSequence.new(nil, [
+        SilverOrb.IntFormatter.format_u32(int, @bump_offset),
+        # @bump_offset = @bump_offset + Orb.Stack.pop(Orb.I32)
+        @bump_offset = Orb.Instruction.i32(:add, @bump_offset),
+        # FIXME: should be able to use Orb.Stack.pop/1 here
+        Orb.Stack.drop(%Orb.Nop{push_type: Orb.I32})
+      ])
     end
   end
 
