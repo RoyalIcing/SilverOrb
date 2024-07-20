@@ -4,23 +4,54 @@ defmodule MenuButton do
   use Orb
   use SilverOrb.StringBuilder
 
+  defmodule FocusEnum do
+    def none(), do: 0
+    def menu(), do: 1
+    def button(), do: 2
+  end
+
   global do
-    @expanded? 0
+    @active_item_index 0
+    @focus_enum FocusEnum.none()
   end
 
   global :export_mutable do
     @id_suffix 1
-    @menu_item_count 4
+    @item_count 3
   end
 
-  defw(get_expanded?(), I32, do: @expanded?)
+  defw open?(), I32 do
+    @active_item_index > 0
+  end
 
   defw open() do
-    @expanded? = 1
+    if @item_count > 0 do
+      @active_item_index = 1
+      @focus_enum = FocusEnum.menu()
+    end
   end
 
   defw close() do
-    @expanded? = 0
+    @active_item_index = 0
+    @focus_enum = FocusEnum.button()
+  end
+
+  defw toggle() do
+    if @active_item_index do
+      close()
+    else
+      open()
+    end
+  end
+
+  defw focus_next_item() do
+    @active_item_index = @active_item_index + 1
+
+    if @active_item_index > @item_count do
+      @active_item_index = 1
+    end
+
+    @focus_enum = FocusEnum.menu()
   end
 
   defw button_id(), StringBuilder do
@@ -48,11 +79,11 @@ defmodule MenuButton do
 
   defwp button(), StringBuilder do
     build! do
-      ~S|<button type="button" id="|
+      ~S|<button type="button" data-action="toggle" data-keydown-arrow-down id="|
       button_id()
       ~S|" aria-haspopup="true" aria-expanded="|
 
-      if @expanded? do
+      if open?() do
         "true"
       else
         "false"
@@ -73,7 +104,13 @@ defmodule MenuButton do
       menu_id()
       ~S|" tabindex="-1" aria-labelledby="|
       button_id()
-      ~S|" aria-activedescendant="">|
+      ~S|" aria-activedescendant="|
+
+      if @active_item_index > 0 do
+        menu_item_id(@active_item_index)
+      end
+
+      ~S|">|
       "\n"
 
       loop EachItem, result: StringBuilder do
@@ -81,7 +118,7 @@ defmodule MenuButton do
 
         i = i + 1
 
-        if i <= @menu_item_count do
+        if i <= @item_count do
           EachItem.continue()
         end
       end
@@ -95,7 +132,9 @@ defmodule MenuButton do
     build! do
       ~S|<li role="menuitem" id="|
       menu_item_id(i)
-      ~S|">|
+      ~S|" data-action="activate_item:[|
+      append!(decimal_u32: i)
+      ~S|]">|
       ~S|Action |
       append!(decimal_u32: i)
       ~S|</li>|
@@ -104,36 +143,44 @@ defmodule MenuButton do
   end
 
   # @export "text/html"
-  defw text_html, StringBuilder do
+  defw text_html(), StringBuilder do
     build! do
       button()
       menu_list()
     end
   end
 
+  defw text_css(), StringBuilder do
+    build! do
+      ~S"""
+      menu-button button { background-color: var(--MenuButton-background); }
+      """
+    end
+  end
+
+  defw focus_id(), StringBuilder do
+    build! do
+      if @focus_enum === 1 do
+        menu_id()
+      else
+        if @focus_enum === 2 do
+          button_id()
+        else
+          ""
+        end
+      end
+    end
+  end
+
+  defw application_javascript(), StringBuilder do
+    build! do
+      ~S"""
+      // data-keydown-arrow-down
+      """
+    end
+  end
+
   # |> export("text/html")
-
-  # defwp build_item(step: I32), StringBuilder, current_step?: I32 do
-  #   current_step? = step === Orb.Instruction.Global.Get.new(:i32, :step)
-  #   # current_step? = @step === step
-
-  #   build! do
-  #     ~S|<div class="w-4 h-4 text-center |
-
-  #     if current_step? do
-  #       ~S|bg-blue-600 text-white|
-  #     else
-  #       ~S|text-black|
-  #     end
-
-  #     ~S|">|
-  #     # Format.Decimal.u32(step)
-  #     # {:decimal_u32, step}
-  #     # step
-  #     append!(decimal_u32: step)
-  #     ~s|</div>\n|
-  #   end
-  # end
 end
 
 defmodule AriaWidgetsTest do
@@ -141,7 +188,6 @@ defmodule AriaWidgetsTest do
   alias OrbWasmtime.Instance
 
   defmacrop sigil_H({:<<>>, meta, [expr]}, []) do
-    # expr
     EEx.compile_string(expr, indentation: meta[:indentation] || 0)
   end
 
@@ -157,14 +203,15 @@ defmodule AriaWidgetsTest do
       html = read_string(instance, :text_html)
 
       assert html === ~H"""
-             <button type="button" id="menubutton:1" aria-haspopup="true" aria-expanded="false" aria-controls="menu:1">
+             <button type="button" data-action="toggle" data-keydown-arrow-down id="menubutton:1" aria-haspopup="true" aria-expanded="false" aria-controls="menu:1">
              <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="">
-             <li role="menuitem" id="menuitem:1.1">Action 1</li>
-             <li role="menuitem" id="menuitem:1.2">Action 2</li>
-             <li role="menuitem" id="menuitem:1.3">Action 3</li>
-             <li role="menuitem" id="menuitem:1.4">Action 4</li>
+             <li role="menuitem" id="menuitem:1.1" data-action="activate_item:[1]">Action 1</li>
+             <li role="menuitem" id="menuitem:1.2" data-action="activate_item:[2]">Action 2</li>
+             <li role="menuitem" id="menuitem:1.3" data-action="activate_item:[3]">Action 3</li>
              </ul>
              """
+
+      assert read_string(instance, :focus_id) === ""
     end
 
     test "read ids", %{instance: instance} do
@@ -185,14 +232,42 @@ defmodule AriaWidgetsTest do
       html = read_string(instance, :text_html)
 
       assert html === ~H"""
-             <button type="button" id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1">
-             <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="">
-             <li role="menuitem" id="menuitem:1.1">Action 1</li>
-             <li role="menuitem" id="menuitem:1.2">Action 2</li>
-             <li role="menuitem" id="menuitem:1.3">Action 3</li>
-             <li role="menuitem" id="menuitem:1.4">Action 4</li>
+             <button type="button" data-action="toggle" data-keydown-arrow-down id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1">
+             <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="menuitem:1.1">
+             <li role="menuitem" id="menuitem:1.1" data-action="activate_item:[1]">Action 1</li>
+             <li role="menuitem" id="menuitem:1.2" data-action="activate_item:[2]">Action 2</li>
+             <li role="menuitem" id="menuitem:1.3" data-action="activate_item:[3]">Action 3</li>
              </ul>
              """
+
+      assert read_string(instance, :focus_id) === "menu:1"
+    end
+
+    test "key events", %{instance: instance} do
+      Instance.call(instance, :toggle)
+
+      Instance.call(instance, :focus_next_item)
+      assert read_string(instance, :focus_id) === "menu:1"
+
+      assert read_string(instance, :text_html) === ~H"""
+             <button type="button" data-action="toggle" data-keydown-arrow-down id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1">
+             <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="menuitem:1.2">
+             <li role="menuitem" id="menuitem:1.1" data-action="activate_item:[1]">Action 1</li>
+             <li role="menuitem" id="menuitem:1.2" data-action="activate_item:[2]">Action 2</li>
+             <li role="menuitem" id="menuitem:1.3" data-action="activate_item:[3]">Action 3</li>
+             </ul>
+             """
+    end
+
+    test "focus next wraps", %{instance: instance} do
+      Instance.call(instance, :toggle)
+      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.1"|
+      Instance.call(instance, :focus_next_item)
+      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.2"|
+      Instance.call(instance, :focus_next_item)
+      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.3"|
+      Instance.call(instance, :focus_next_item)
+      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.1"|
     end
   end
 
