@@ -5,6 +5,7 @@ defmodule CRCTest do
 
   test "crc32/2" do
     wat = Orb.to_wat(SilverOrb.CRC)
+    # IO.puts(wat)
     i = Instance.run(wat)
 
     assert 0 = wasm_crc32(i, "")
@@ -14,8 +15,8 @@ defmodule CRCTest do
     assert 0x3610A686 = :erlang.crc32("hello")
 
     Enum.each(1..1024, fn n ->
-      a = :crypto.strong_rand_bytes(n)
-      assert wasm_crc32(i, a) === :erlang.crc32(a)
+      bytes = :crypto.strong_rand_bytes(n)
+      assert wasm_crc32(i, bytes) === :erlang.crc32(bytes)
     end)
   end
 
