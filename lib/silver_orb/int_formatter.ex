@@ -4,7 +4,7 @@ defmodule SilverOrb.IntFormatter do
 
   defmacro __using__(_) do
     quote do
-      import Orb
+      require Orb
 
       Orb.include(unquote(__MODULE__))
     end
