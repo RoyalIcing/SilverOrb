@@ -59,6 +59,8 @@ defmodule MultiStepForm do
 
       ~S|">|
       # Format.Decimal.u32(step)
+      # {:decimal_u32, step}
+      # step
       append!(decimal_u32: step)
       ~s|</div>\n|
     end
