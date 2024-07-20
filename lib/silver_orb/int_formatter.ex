@@ -12,7 +12,7 @@ defmodule SilverOrb.IntFormatter do
 
   Memory.pages(2)
 
-  defw format_u32_char_count(value: I32),
+  defw decimal_u32_char_count(value: I32),
        I32,
        digit_count: I32,
        digit: I32 do
@@ -28,11 +28,11 @@ defmodule SilverOrb.IntFormatter do
     digit_count
   end
 
-  defw format_u32(value: I32, str_ptr: I32.U8.UnsafePointer), Str,
+  defw decimal_u32(value: I32, str_ptr: I32.U8.UnsafePointer), Str,
     working_offset: I32.U8.UnsafePointer,
     len: I32,
     digit: I32 do
-    len = format_u32_char_count(value)
+    len = decimal_u32_char_count(value)
     # We then start from the back, as we have to print the digits in reverse.
     working_offset = str_ptr + len
 

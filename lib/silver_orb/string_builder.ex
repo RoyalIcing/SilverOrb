@@ -327,7 +327,7 @@ defmodule SilverOrb.StringBuilder do
       # mut!(@bump_offset).write
 
       Orb.InstructionSequence.new(nil, [
-        SilverOrb.IntFormatter.format_u32(int, @bump_offset),
+        SilverOrb.IntFormatter.decimal_u32(int, @bump_offset),
         # @bump_offset = @bump_offset + Orb.Stack.pop(Orb.I32)
         @bump_offset = Orb.Instruction.i32(:add, @bump_offset),
         # FIXME: should be able to use Orb.Stack.pop/1 here
