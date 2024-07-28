@@ -44,25 +44,27 @@ defmodule MenuButton do
     end
   end
 
-  defw focus_previous_item() do
+  defw focus_item(index: I32) do
     @active_item_index =
-      if @active_item_index > 1 do
-        @active_item_index - 1
+      if index > @item_count do
+        i32(1)
       else
-        @item_count
+        if index <= 0 do
+          @item_count
+        else
+          index
+        end
       end
 
     @focus_enum = FocusEnum.menu()
   end
 
+  defw focus_previous_item() do
+    focus_item(@active_item_index - 1)
+  end
+
   defw focus_next_item() do
-    @active_item_index = @active_item_index + 1
-
-    if @active_item_index > @item_count do
-      @active_item_index = 1
-    end
-
-    @focus_enum = FocusEnum.menu()
+    focus_item(@active_item_index + 1)
   end
 
   defw button_id(), StringBuilder do
@@ -145,7 +147,9 @@ defmodule MenuButton do
     build! do
       ~S|<li role="menuitem" id="|
       menu_item_id(i)
-      ~S|" data-action="activate_item:[|
+      ~S|" data-action="select_item:[|
+      append!(decimal_u32: i)
+      ~S|]" data-pointerover="focus_item:[|
       append!(decimal_u32: i)
       ~S|]">|
       ~S|Action |
@@ -158,15 +162,17 @@ defmodule MenuButton do
   # @export "text/html"
   defw text_html(), StringBuilder do
     build! do
+      "<lipid-menu-button>\n"
       button()
       menu_list()
+      "</lipid-menu-button>\n"
     end
   end
 
   defw text_css(), StringBuilder do
     build! do
       ~S"""
-      menu-button button { background-color: var(--MenuButton-background); }
+      lipid-menu-button button { background-color: var(--LipidMenuButton-background); }
       """
     end
   end
@@ -205,6 +211,7 @@ defmodule AriaWidgetsTest do
   describe "MenuButton" do
     setup do
       wat = Orb.to_wat(MenuButton)
+      # wasm = Orb.to_wasm(MenuButton)
       # IO.puts(wat)
       instance = Instance.run(wat)
       %{instance: instance}
@@ -214,12 +221,14 @@ defmodule AriaWidgetsTest do
       html = read_string(instance, :text_html)
 
       assert html === ~H"""
+             <lipid-menu-button>
              <button type="button" id="menubutton:1" aria-haspopup="true" aria-expanded="false" aria-controls="menu:1" data-action="toggle" data-keydown-arrow-down data-keydown-arrow-up="focus_previous_item">
              <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="" data-keydown-escape="close" data-keydown-arrow-down="focus_previous_item" data-keydown-arrow-down="focus_next_item">
-             <li role="menuitem" id="menuitem:1.1" data-action="activate_item:[1]">Action 1</li>
-             <li role="menuitem" id="menuitem:1.2" data-action="activate_item:[2]">Action 2</li>
-             <li role="menuitem" id="menuitem:1.3" data-action="activate_item:[3]">Action 3</li>
+             <li role="menuitem" id="menuitem:1.1" data-action="select_item:[1]" data-pointerover="focus_item:[1]">Action 1</li>
+             <li role="menuitem" id="menuitem:1.2" data-action="select_item:[2]" data-pointerover="focus_item:[2]">Action 2</li>
+             <li role="menuitem" id="menuitem:1.3" data-action="select_item:[3]" data-pointerover="focus_item:[3]">Action 3</li>
              </ul>
+             </lipid-menu-button>
              """
 
       assert read_string(instance, :focus_id) === ""
@@ -243,12 +252,14 @@ defmodule AriaWidgetsTest do
       html = read_string(instance, :text_html)
 
       assert html === ~H"""
+             <lipid-menu-button>
              <button type="button" id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1" data-action="toggle" data-keydown-arrow-down data-keydown-arrow-up="focus_previous_item">
              <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="menuitem:1.1" data-keydown-escape="close" data-keydown-arrow-down="focus_previous_item" data-keydown-arrow-down="focus_next_item">
-             <li role="menuitem" id="menuitem:1.1" data-action="activate_item:[1]">Action 1</li>
-             <li role="menuitem" id="menuitem:1.2" data-action="activate_item:[2]">Action 2</li>
-             <li role="menuitem" id="menuitem:1.3" data-action="activate_item:[3]">Action 3</li>
+             <li role="menuitem" id="menuitem:1.1" data-action="select_item:[1]" data-pointerover="focus_item:[1]">Action 1</li>
+             <li role="menuitem" id="menuitem:1.2" data-action="select_item:[2]" data-pointerover="focus_item:[2]">Action 2</li>
+             <li role="menuitem" id="menuitem:1.3" data-action="select_item:[3]" data-pointerover="focus_item:[3]">Action 3</li>
              </ul>
+             </lipid-menu-button>
              """
 
       assert read_string(instance, :focus_id) === "menu:1"
@@ -261,12 +272,14 @@ defmodule AriaWidgetsTest do
       assert read_string(instance, :focus_id) === "menu:1"
 
       assert read_string(instance, :text_html) === ~H"""
+             <lipid-menu-button>
              <button type="button" id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1" data-action="toggle" data-keydown-arrow-down data-keydown-arrow-up="focus_previous_item">
              <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="menuitem:1.2" data-keydown-escape="close" data-keydown-arrow-down="focus_previous_item" data-keydown-arrow-down="focus_next_item">
-             <li role="menuitem" id="menuitem:1.1" data-action="activate_item:[1]">Action 1</li>
-             <li role="menuitem" id="menuitem:1.2" data-action="activate_item:[2]">Action 2</li>
-             <li role="menuitem" id="menuitem:1.3" data-action="activate_item:[3]">Action 3</li>
+             <li role="menuitem" id="menuitem:1.1" data-action="select_item:[1]" data-pointerover="focus_item:[1]">Action 1</li>
+             <li role="menuitem" id="menuitem:1.2" data-action="select_item:[2]" data-pointerover="focus_item:[2]">Action 2</li>
+             <li role="menuitem" id="menuitem:1.3" data-action="select_item:[3]" data-pointerover="focus_item:[3]">Action 3</li>
              </ul>
+             </lipid-menu-button>
              """
     end
 
@@ -275,12 +288,14 @@ defmodule AriaWidgetsTest do
       assert read_string(instance, :focus_id) === "menu:1"
 
       assert read_string(instance, :text_html) === ~H"""
+             <lipid-menu-button>
              <button type="button" id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1" data-action="toggle" data-keydown-arrow-down data-keydown-arrow-up="focus_previous_item">
              <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="menuitem:1.3" data-keydown-escape="close" data-keydown-arrow-down="focus_previous_item" data-keydown-arrow-down="focus_next_item">
-             <li role="menuitem" id="menuitem:1.1" data-action="activate_item:[1]">Action 1</li>
-             <li role="menuitem" id="menuitem:1.2" data-action="activate_item:[2]">Action 2</li>
-             <li role="menuitem" id="menuitem:1.3" data-action="activate_item:[3]">Action 3</li>
+             <li role="menuitem" id="menuitem:1.1" data-action="select_item:[1]" data-pointerover="focus_item:[1]">Action 1</li>
+             <li role="menuitem" id="menuitem:1.2" data-action="select_item:[2]" data-pointerover="focus_item:[2]">Action 2</li>
+             <li role="menuitem" id="menuitem:1.3" data-action="select_item:[3]" data-pointerover="focus_item:[3]">Action 3</li>
              </ul>
+             </lipid-menu-button>
              """
     end
 
@@ -297,6 +312,13 @@ defmodule AriaWidgetsTest do
       assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.3"|
       Instance.call(instance, :focus_previous_item)
       assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.2"|
+    end
+
+    test "menuitem pointerover", %{instance: instance} do
+      Instance.call(instance, :focus_item, 2)
+      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.2"|
+      Instance.call(instance, :focus_item, -1)
+      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.3"|
     end
   end
 
