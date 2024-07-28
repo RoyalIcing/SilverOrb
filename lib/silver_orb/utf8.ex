@@ -4,6 +4,7 @@ defmodule SilverOrb.UTF8 do
   # Used for testing
   Memory.pages(2)
 
+  # TODO: double check against https://webassembly.github.io/spec/core/binary/values.html#binary-utf8
   # defw valid?(str_ptr: Str.Pointer, str_len: Str.Length), I32 do
   # defw valid?(str: Str), I32,
   defw valid?(str_ptr: I32.UnsafePointer, str_len: I32), I32,
