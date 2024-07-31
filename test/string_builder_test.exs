@@ -165,43 +165,70 @@ defmodule StringBuilderTest do
   use ExUnit.Case, async: true
   alias OrbWasmtime.Instance
 
+  setup_all do
+    wat = Orb.to_wat(MultiStepForm)
+    # wasm = Orb.to_wasm(MultiStepForm)
+    # IO.puts(wat)
+
+    path_wat = Path.join(__DIR__, "multi_step_form.wat")
+    path_wasm = Path.join(__DIR__, "multi_step_form.wasm")
+    File.write!(path_wat, wat)
+    System.cmd("wat2wasm", [path_wat], cd: __DIR__)
+    wasm = File.read!(path_wasm)
+
+    on_exit(fn ->
+      File.rm!(path_wat)
+      File.rm!(path_wasm)
+    end)
+
+    %{wat: wat, wasm: wasm}
+  end
+
   describe "MultiStepForm" do
-    test "highlights first step" do
-      wat = Orb.to_wat(MultiStepForm)
-      # IO.puts(wat)
-      instance = Instance.run(wat)
+    test "highlights first step", %{wat: wat, wasm: wasm} do
+      for source <- [wat, wasm] do
+        {:ok, pid} = Wasmex.start_link(%{bytes: source})
 
-      {ptr, len} = Instance.call(instance, :to_string)
-      html = Instance.read_memory(instance, ptr, len)
+        {:ok, [ptr, len]} = Wasmex.call_function(pid, :to_string, [])
 
-      assert html ==
-               ~S"""
-               <h1>Step by step ✨</h1>
-               <div class="w-4 h-4 text-center bg-blue-600 text-white">1</div>
-               <div class="w-4 h-4 text-center text-black">2</div>
-               <div class="w-4 h-4 text-center text-black">3</div>
-               <div class="w-4 h-4 text-center text-black">4</div>
-               <div class="w-4 h-4 text-center text-black">5</div>
-               """
+        {:ok, memory} = Wasmex.memory(pid)
+        {:ok, store} = Wasmex.store(pid)
+        html = Wasmex.Memory.read_binary(store, memory, ptr, len)
+
+        assert html ==
+                 ~S"""
+                 <h1>Step by step ✨</h1>
+                 <div class="w-4 h-4 text-center bg-blue-600 text-white">1</div>
+                 <div class="w-4 h-4 text-center text-black">2</div>
+                 <div class="w-4 h-4 text-center text-black">3</div>
+                 <div class="w-4 h-4 text-center text-black">4</div>
+                 <div class="w-4 h-4 text-center text-black">5</div>
+                 """
+      end
     end
 
-    test "can jump to 3rd step" do
-      instance = Instance.run(MultiStepForm)
-      # Instance.set_global(instance, :step_count, 3)
-      Instance.call(instance, :jump_to_step, 3)
+    test "can jump to 3rd step", %{wat: wat, wasm: wasm} do
+      wat = Orb.to_wat(MultiStepForm)
+      wasm = Orb.to_wasm(MultiStepForm)
 
-      {ptr, len} = Instance.call(instance, :to_string)
-      html = Instance.read_memory(instance, ptr, len)
+      for source <- [wat] do
+        instance = Instance.run(source)
+        # Instance.set_global(instance, :step_count, 3)
+        Instance.call(instance, :jump_to_step, 3)
 
-      assert html ==
-               ~S"""
-               <h1>Step by step ✨</h1>
-               <div class="w-4 h-4 text-center text-black">1</div>
-               <div class="w-4 h-4 text-center text-black">2</div>
-               <div class="w-4 h-4 text-center bg-blue-600 text-white">3</div>
-               <div class="w-4 h-4 text-center text-black">4</div>
-               <div class="w-4 h-4 text-center text-black">5</div>
-               """
+        {ptr, len} = Instance.call(instance, :to_string)
+        html = Instance.read_memory(instance, ptr, len)
+
+        assert html ==
+                 ~S"""
+                 <h1>Step by step ✨</h1>
+                 <div class="w-4 h-4 text-center text-black">1</div>
+                 <div class="w-4 h-4 text-center text-black">2</div>
+                 <div class="w-4 h-4 text-center bg-blue-600 text-white">3</div>
+                 <div class="w-4 h-4 text-center text-black">4</div>
+                 <div class="w-4 h-4 text-center text-black">5</div>
+                 """
+      end
     end
   end
 

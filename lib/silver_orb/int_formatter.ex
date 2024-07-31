@@ -14,12 +14,9 @@ defmodule SilverOrb.IntFormatter do
 
   defw decimal_u32_char_count(value: I32),
        I32,
-       digit_count: I32,
-       digit: I32 do
+       digit_count: I32 do
     loop Digits do
       digit_count = I32.add(digit_count, 1)
-
-      digit = I32.rem_u(value, 10)
       value = I32.div_u(value, 10)
 
       Digits.continue(if: I32.gt_u(value, 0))

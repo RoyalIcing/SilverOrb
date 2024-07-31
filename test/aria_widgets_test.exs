@@ -136,6 +136,9 @@ defmodule MenuButton do
         if i <= @item_count do
           EachItem.continue()
         end
+
+        # EachItem.continue() when i <= @item_count
+        # continue(EachItem) when i <= @item_count
       end
 
       ~S|</ul>|
@@ -213,8 +216,33 @@ defmodule AriaWidgetsTest do
       wat = Orb.to_wat(MenuButton)
       # wasm = Orb.to_wasm(MenuButton)
       # IO.puts(wat)
+
+      path_wat = Path.join(__DIR__, "menu-button.wat")
+      path_wasm = Path.join(__DIR__, "menu-button.wasm")
+      File.write!(path_wat, wat)
+      System.cmd("wat2wasm", [path_wat], cd: __DIR__)
+      wasm = File.read!(path_wasm)
+
+      on_exit(fn ->
+        File.rm!(path_wat)
+        File.rm!(path_wasm)
+      end)
+
+      %{wat: wat, wasm: wasm}
+    end
+
+    setup %{wat: wat, wasm: wasm} do
       instance = Instance.run(wat)
-      %{instance: instance}
+
+      {:ok, pid} = Wasmex.start_link(%{bytes: wasm})
+      pid = :todo
+
+      # {:ok, [ptr, len]} = Wasmex.call_function(pid, :to_string, [])
+      # {:ok, memory} = Wasmex.memory(pid)
+      # {:ok, store} = Wasmex.store(pid)
+      # html = Wasmex.Memory.read_binary(store, memory, ptr, len)
+
+      %{instance: instance, pid: pid}
     end
 
     test "initial html", %{instance: instance} do

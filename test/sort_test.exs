@@ -1,7 +1,6 @@
 defmodule SortTest do
   use ExUnit.Case, async: true
   @moduletag timeout: 1000
-  alias OrbWasmtime.Instance
 
   defmodule SortIntegers do
     use Orb
@@ -46,7 +45,8 @@ defmodule SortTest do
     end
   end
 
-  test "bubble_sort" do
+  test "bubble_sort OrbWasmtime" do
+    alias OrbWasmtime.Instance
     wat = Orb.to_wat(SortIntegers)
     instance = Instance.run(wat)
 
@@ -57,7 +57,18 @@ defmodule SortTest do
     assert 4 = Instance.call(instance, :read_item, 2)
     assert 9 = Instance.call(instance, :read_item, 3)
     assert 12 = Instance.call(instance, :read_item, 4)
+  end
 
-    # assert [] = Instance.read_memory(instance, 0x400, 20)
+  test "bubble_sort Wasmex" do
+    wat = Orb.to_wat(SortIntegers)
+    {:ok, pid} = Wasmex.start_link(%{bytes: wat})
+
+    assert {:ok, [4]} = Wasmex.call_function(pid, :read_item, [0])
+    Wasmex.call_function(pid, :bubble_sort, [])
+    assert {:ok, [2]} = Wasmex.call_function(pid, :read_item, [0])
+    assert {:ok, [3]} = Wasmex.call_function(pid, :read_item, [1])
+    assert {:ok, [4]} = Wasmex.call_function(pid, :read_item, [2])
+    assert {:ok, [9]} = Wasmex.call_function(pid, :read_item, [3])
+    assert {:ok, [12]} = Wasmex.call_function(pid, :read_item, [4])
   end
 end

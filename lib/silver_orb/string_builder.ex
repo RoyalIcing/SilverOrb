@@ -60,9 +60,13 @@ defmodule SilverOrb.StringBuilder do
   # use SilverOrb.BumpAllocator
   # use SilverOrb.Mem
 
-  @behaviour Orb.CustomType
-  @impl Orb.CustomType
-  def wasm_type(), do: {:i32, :i32}
+  with @behaviour Orb.CustomType do
+    @impl Orb.CustomType
+    def wasm_type(), do: {:i32, :i32}
+
+    @impl Orb.CustomType
+    def type_name(), do: "SilverOrb.StringBuilder"
+  end
 
   defmodule Format do
     @moduledoc false
@@ -108,6 +112,8 @@ defmodule SilverOrb.StringBuilder do
         bump_mark: 0,
         bump_write_level: 0
       )
+
+      Orb.types([unquote(__MODULE__)])
     end
   end
 
@@ -236,31 +242,31 @@ defmodule SilverOrb.StringBuilder do
   def append!(function, a, b, c) when is_atom(function) do
     import Orb.DSL
 
-    Orb.Instruction.typed_call(I32, [], function, [a, b, c]) |> Orb.Stack.drop()
+    Orb.Instruction.Call.new(I32, [], function, [a, b, c]) |> Orb.Stack.drop()
   end
 
   def append!(function, a, b) when is_atom(function) do
     import Orb.DSL
 
-    Orb.Instruction.typed_call(I32, [], function, [a, b]) |> Orb.Stack.drop()
+    Orb.Instruction.Call.new(I32, [], function, [a, b]) |> Orb.Stack.drop()
   end
 
   def append!(function, args) when is_atom(function) and is_list(args) do
     import Orb.DSL
 
-    Orb.Instruction.typed_call(I32, [], function, args) |> Orb.Stack.drop()
+    Orb.Instruction.Call.new(I32, [], function, args) |> Orb.Stack.drop()
   end
 
   def append!(function, a) when is_atom(function) do
     import Orb.DSL
 
-    Orb.Instruction.typed_call(I32, [], function, [a]) |> Orb.Stack.drop()
+    Orb.Instruction.Call.new(I32, [], function, [a]) |> Orb.Stack.drop()
   end
 
   def append!(function) when is_atom(function) do
     import Orb.DSL
 
-    Orb.Instruction.typed_call(I32, [], function, []) |> Orb.Stack.drop()
+    Orb.Instruction.Call.new(I32, [], function, []) |> Orb.Stack.drop()
   end
 
   def append!(constant) when is_binary(constant) do
@@ -268,7 +274,7 @@ defmodule SilverOrb.StringBuilder do
 
     Orb.InstructionSequence.new(nil, [
       constant,
-      Orb.Instruction.typed_call(
+      Orb.Instruction.Call.new(
         nil,
         [I32.UnsafePointer, I32],
         :bump_write_str,
@@ -286,7 +292,7 @@ defmodule SilverOrb.StringBuilder do
   def append!(%Orb.Str{} = str) do
     Orb.InstructionSequence.new(nil, [
       str,
-      Orb.Instruction.typed_call(
+      Orb.Instruction.Call.new(
         nil,
         [:i32, :i32],
         :bump_write_str,
@@ -300,11 +306,11 @@ defmodule SilverOrb.StringBuilder do
   def append!(string: str) do
     Orb.InstructionSequence.new(nil, [
       str,
-      Orb.Instruction.typed_call(
+      Orb.Instruction.Call.new(
         nil,
         [:i32, :i32],
         :bump_write_str,
-        []
+        [Orb.Stack.pop(:i32), Orb.Stack.pop(:i32)]
       )
     ])
 
