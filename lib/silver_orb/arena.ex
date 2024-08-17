@@ -164,6 +164,7 @@ defmodule SilverOrb.Arena do
       max_end_page_offset = page_offset + (max_page_count || page_count)
       page_byte_size = Orb.Memory.page_byte_size()
       # TODO: this needs to incorporate whether memory has been grown.
+      # FIXME: should this be with the page_count, not end_page_offset?
       valid_memory_range =
         Range.new(page_offset * page_byte_size, end_page_offset * page_byte_size)
 
