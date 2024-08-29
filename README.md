@@ -27,7 +27,7 @@ The package can be installed by adding `silver_orb` to your list of dependencies
 ```elixir
 def deps do
   [
-    {:silver_orb, "~> 0.0.9"}
+    {:silver_orb, "~> 0.0.10"}
   ]
 end
 ```
