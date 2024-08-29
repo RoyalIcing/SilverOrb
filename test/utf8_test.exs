@@ -59,24 +59,24 @@ defmodule UTF8Test do
     i = Instance.run(wat)
 
     Enum.each(@good_sequences, fn good_sequence ->
-      assert 1 = check_valid?(i, good_sequence)
+      assert 1 = wasm_valid?(i, good_sequence)
       assert String.valid?(good_sequence)
     end)
 
     Enum.each(@bad_sequences, fn bad_sequence ->
-      assert 0 = check_valid?(i, bad_sequence)
+      assert 0 = wasm_valid?(i, bad_sequence)
       refute String.valid?(bad_sequence)
     end)
 
     # assert 0 =
-    #          check_valid?(
+    #          wasm_valid?(
     #            i,
     #            "\x25\x5b\x6e\x2c\x32\x2c\x5b\x5b\x33\x2c\x34\x2c\x05\x29\x2c\x33\x01\x01"
     #          )
-    # assert 0 = check_valid?(i, "\xc3\xb1")
+    # assert 0 = wasm_valid?(i, "\xc3\xb1")
   end
 
-  defp check_valid?(i, s) when is_binary(s) do
+  defp wasm_valid?(i, s) when is_binary(s) do
     input_ptr = Orb.Memory.page_byte_size()
     bytes = s |> :binary.bin_to_list()
 
