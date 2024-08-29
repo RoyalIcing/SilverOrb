@@ -24,14 +24,14 @@ defmodule SilverOrb.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger, :runtime_tools, :xmerl]
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:orb, "~> 0.0.51"},
+      {:orb, "~> 0.1.0"},
       # {:orb, path: "../orb", override: true},
       {:orb_wasmtime, "~> 0.1.17", only: :test},
       {:wasmex, "~> 0.9.1", only: :test},
