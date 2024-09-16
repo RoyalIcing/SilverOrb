@@ -28,4 +28,12 @@ defmodule SilverOrb.Calendar.Gregorian do
     # Adjust the result to make Sunday 0 instead of Saturday 0
     I32.rem_u(weekday + 5, 7) + 1
   end
+
+  # defw add_days(year: I32, month: I32, day: I32, days_to_add: I32), {I32, I32, I32} do
+  #   if days_to_add === 0 do
+  #     {year, month, day}
+  #   else
+  #     {year, month, day}
+  #   end
+  # end
 end

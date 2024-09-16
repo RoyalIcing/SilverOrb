@@ -91,16 +91,13 @@ defmodule GregorianCalendarTest do
     assert 6 = Instance.call(instance, "day_of_week", 2016, 11, 5)
     assert 7 = Instance.call(instance, "day_of_week", 2016, 11, 6)
 
-    start_date = ~D[1700-01-01]
-    end_date = ~D[3000-01-10]
-
-    Date.range(start_date, end_date)
+    Date.range(~D[1700-01-01], ~D[3000-01-10])
     |> Enum.take_random(1234)
     |> Enum.each(fn date ->
       expected_weekday = Date.day_of_week(date)
+      wasm_weekday = Instance.call(instance, "day_of_week", date.year, date.month, date.day)
 
-      assert expected_weekday ===
-               Instance.call(instance, "day_of_week", date.year, date.month, date.day)
+      assert expected_weekday === wasm_weekday
     end)
   end
 end
