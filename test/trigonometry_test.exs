@@ -7,9 +7,7 @@ defmodule TrigonometryTest do
   end
 
   setup %{wat: wat} do
-
     {:ok, pid} = Wasmex.start_link(%{bytes: wat})
-
     %{pid: pid}
   end
 
