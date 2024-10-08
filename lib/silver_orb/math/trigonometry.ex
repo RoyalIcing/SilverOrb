@@ -2,6 +2,7 @@ defmodule SilverOrb.Math.Trigonometry do
   use Orb
 
   # TODO: use more accurate CORDIC (Coordinate Rotation Digital Computer) algorithm instead
+  # TODO: or adopt what Zig does, which is influenced by musl
 
   defw cos(x: F64), F64, x2: F64 do
     # Normalize x to [-pi, pi]
