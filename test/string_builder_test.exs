@@ -207,7 +207,7 @@ defmodule StringBuilderTest do
       end
     end
 
-    test "can jump to 3rd step", %{wat: wat, wasm: wasm} do
+    test "can jump to 3rd step", %{wat: _wat, wasm: _wasm} do
       wat = Orb.to_wat(MultiStepForm)
       wasm = Orb.to_wasm(MultiStepForm)
 
