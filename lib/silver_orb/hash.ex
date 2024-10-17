@@ -24,6 +24,7 @@ defmodule SilverOrb.Hash do
     loop EachByte do
       hash = (hash <<< 5) + hash + Memory.load!(I32.U8, ptr + i)
       # hash = (hash <<< 5) + hash + ptr[u8: i]
+      # hash = (hash <<< 5) + hash + ptr[i].u8
 
       i = i + 1
 
