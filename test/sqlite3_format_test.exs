@@ -78,9 +78,15 @@ defmodule SQLite3FormatTest do
     {:ok, memory} = Wasmex.memory(pid)
     {:ok, store} = Wasmex.store(pid)
     # html = Wasmex.Memory.read_binary(store, memory, ptr, len)
-    Wasmex.Memory.write_binary(store, memory, 0x100, db_bytes)
+    ptr = 0x100
+    Wasmex.Memory.write_binary(store, memory, ptr, db_bytes)
 
-    assert Wasmex.call_function(pid, "read_header", [0x100, byte_size(db_bytes)]) ===
+    assert Wasmex.call_function(pid, "read_header", [ptr, byte_size(db_bytes)]) ===
              {:ok, [page_size, db_size_in_pages, text_encoding]}
+
+    assert {:ok, [cell_count, cell_offset]} = Wasmex.call_function(pid, "read_leaf_table_btree_header", [ptr + 100, byte_size(db_bytes)])
+
+    dbg(cell_count)
+    dbg(cell_offset)
   end
 end

@@ -42,6 +42,32 @@ defmodule SilverOrb.SQLite3Format do
     }
   end
 
+  defw read_btree_header(ptr: I32.UnsafePointer, len: I32), {I32, I32, I32, I32} do
+    {
+      # page type
+      Memory.load!(I32.U8, ptr),
+      # first freeblock offset
+      load_u16_be!(ptr + 1),
+      # cell count
+      load_u16_be!(ptr + 3),
+      # cell content area offset
+      load_u16_be!(ptr + 5)
+    }
+  end
+
+  defw read_create_table_statement(ptr: I32.UnsafePointer, len: I32), I32 do
+    0
+  end
+
+  defw read_leaf_table_btree_header(ptr: I32.UnsafePointer, len: I32), {I32, I32},
+    cell_count: I32,
+    cell_offset: I32 do
+    assert!(Memory.load!(I32.U8, ptr) === 0x0D)
+    cell_count = load_u16_be!(ptr + 3)
+    cell_offset = load_u16_be!(ptr + 5)
+    {cell_count, cell_offset}
+  end
+
   defwp load_u16_be!(ptr: I32.UnsafePointer), I32 do
     Memory.load!(I32.U8, ptr) <<< 8 ||| Memory.load!(I32.U8, ptr + 1)
   end
