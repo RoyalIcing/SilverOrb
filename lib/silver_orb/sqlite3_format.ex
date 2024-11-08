@@ -17,6 +17,8 @@ defmodule SilverOrb.SQLite3Format do
   Reads the SQLite format: https://www.sqlite.org/fileformat.html
   """
   use Orb
+  
+  # See also: https://programmersstone.blog/posts/scrappy-parsing/
 
   Memory.pages(100)
 
@@ -59,13 +61,21 @@ defmodule SilverOrb.SQLite3Format do
     0
   end
 
-  defw read_leaf_table_btree_header(ptr: I32.UnsafePointer, len: I32), {I32, I32},
+  defw read_btree_table_leaf_header(ptr: I32.UnsafePointer, len: I32), {I32, I32},
     cell_count: I32,
     cell_offset: I32 do
     assert!(Memory.load!(I32.U8, ptr) === 0x0D)
     cell_count = load_u16_be!(ptr + 3)
     cell_offset = load_u16_be!(ptr + 5)
     {cell_count, cell_offset}
+  end
+
+  defw read_btree_table_leaf_cell(ptr: I32.UnsafePointer, len: I32), {I32, I32},
+  byte_count_0: I32,
+  byte_count_1: I32 do
+    byte_count_0 = Memory.load!(I32.U8, ptr)
+    byte_count_1 = Memory.load!(I32.U8, ptr + 1)
+    {byte_count_0, byte_count_1}
   end
 
   defwp load_u16_be!(ptr: I32.UnsafePointer), I32 do
