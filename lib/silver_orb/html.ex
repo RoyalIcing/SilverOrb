@@ -80,7 +80,7 @@ defmodule SilverOrb.HTML do
     end
   end
 
-  defw approach_single_count(char: I32.U8), I32 do
+  defw escape_char_count(char: I32.U8), I32 do
     cond2 I32 do
       char === ?< -> i32(4)
       char === ?> -> i32(4)
@@ -100,7 +100,7 @@ defmodule SilverOrb.HTML do
     # end
   end
 
-  defw approach_single(char: I32.U8, write_ptr: I32.U8.UnsafePointer), I32, write_count: I32 do
+  defw escape_char(char: I32.U8, write_ptr: I32.U8.UnsafePointer), I32, write_count: I32 do
     cond do
       char === ?< ->
         # write_ptr[write_utf8!: "&amp;"]
