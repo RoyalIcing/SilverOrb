@@ -51,21 +51,14 @@ defmodule HTMLTest do
     defw escape_input(), input: Memory.Slice, output_so_far: I32, output_size: I32 do
       input = Memory.Slice.from(i32(input_ptr()), @input_size)
 
-      Memory.store!(I32.U8, output_ptr() + 0, ??)
-
       loop char <- input do
         output_so_far = output_so_far + SilverOrb.HTML.escape_char(char, output_ptr() + output_so_far)
         
         # output_so_far =
         #   output_so_far + SilverOrb.HTML.escape_char_block(char, output_ptr() + output_so_far)
-
-        # Memory.store!(I32.U8, output_ptr() + output_so_far, char)
-        # output_so_far = output_so_far + 1
       end
 
       @output_size = output_so_far
-      # |> dbg()
-      # |> put_in([Access.key!(:body), Access.at!(0), Access.key!(:body), Access.key!(:push_type)], nil)
     end
   end
 

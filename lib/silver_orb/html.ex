@@ -175,6 +175,15 @@ defmodule SilverOrb.HTML do
   # Does compile-time asserts that the types match.
   # defwblock escape_char(char: I32, write_ptr: I32.UnsafePointer) -> I32 do
   # end
+  # defwblock fibonacci(n: I32, acc: I32) -> I32 do
+    # if n <= 1 do
+    #   return acc
+    #   # {:halt, acc}
+    # end
+    
+    # fibonacci(n - 1, acc + n)
+    # # {:cont, {n - 1, acc + n}}
+  # end
 
   def escape_char_block(char, write_ptr) do
     # TODO: create convenience merge of snippet and block.
