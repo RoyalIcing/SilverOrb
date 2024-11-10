@@ -42,17 +42,28 @@ defmodule SilverOrb.HTML do
 
     instructions =
       for {:->, _, [[condition], result]} <- block do
-        quote do
-          case unquote(condition) do
+        quote bind_quoted: [
+                condition: condition,
+                result:
+                  case result do
+                    {:__block__, _meta, items} ->
+                      quote do: Orb.InstructionSequence.new(unquote(items))
+
+                    single ->
+                      single
+                  end,
+                block_name: block_name
+              ] do
+          case condition do
             true ->
-              unquote(result)
+              result
 
             condition ->
               Orb.IfElse.new(
                 condition,
                 Orb.InstructionSequence.new([
-                  unquote(result),
-                  Orb.Control.break(unquote(block_name))
+                  result,
+                  Orb.Control.break(block_name)
                 ])
               )
               # TODO: need to add branch_type to Orb?
@@ -81,6 +92,13 @@ defmodule SilverOrb.HTML do
   end
 
   defw escape_char_count(char: I32.U8), I32 do
+    # return 4 when char === ?<
+
+    # return do
+    #   4 when char === ?<
+    #   when char === ?< -> 4
+    # end
+
     cond2 I32 do
       char === ?< -> i32(4)
       char === ?> -> i32(4)
@@ -100,31 +118,34 @@ defmodule SilverOrb.HTML do
     # end
   end
 
-  defw escape_char(char: I32.U8, write_ptr: I32.U8.UnsafePointer), I32, write_count: I32 do
-    cond do
+  # TODO: add loop with n times
+  defw escape_char(char: I32.U8, write_ptr: I32.U8.UnsafePointer), I32 do
+    cond2 I32 do
       char === ?< ->
         # write_ptr[write_utf8!: "&amp;"]
         # write_ptr[:utf8!] = "&amp;"
-        write_ptr[at!: 0] = ?&
+        Memory.store!(I32.U8, write_ptr + 0, ?&)
+        # write_ptr[at!: 0] = ?&
         write_ptr[at!: 1] = ?l
         write_ptr[at!: 2] = ?t
         write_ptr[at!: 3] = ?;
-        4
+        i32(4)
 
       char === ?> ->
         write_ptr[at!: 0] = ?&
         write_ptr[at!: 1] = ?g
         write_ptr[at!: 2] = ?t
         write_ptr[at!: 3] = ?;
-        4
+        i32(4)
 
       char === ?& ->
-        write_ptr[at!: 0] = ?&
+        Memory.store!(I32.U8, write_ptr + 0, ?&)
+        # write_ptr[at!: 0] = ?&
         write_ptr[at!: 1] = ?a
         write_ptr[at!: 2] = ?m
         write_ptr[at!: 3] = ?p
         write_ptr[at!: 4] = ?;
-        5
+        i32(5)
 
       char === ?" ->
         write_ptr[at!: 0] = ?&
@@ -133,7 +154,7 @@ defmodule SilverOrb.HTML do
         write_ptr[at!: 3] = ?o
         write_ptr[at!: 4] = ?t
         write_ptr[at!: 5] = ?;
-        6
+        i32(6)
 
       char === ?' ->
         write_ptr[at!: 0] = ?&
@@ -141,11 +162,69 @@ defmodule SilverOrb.HTML do
         write_ptr[at!: 2] = ?3
         write_ptr[at!: 3] = ?9
         write_ptr[at!: 4] = ?;
-        5
+        i32(5)
 
       true ->
-        write_ptr[at!: 0] = char
-        1
+        Memory.store!(I32.U8, write_ptr, char)
+        # write_ptr[at!: 0] = char
+        i32(1)
+    end
+  end
+
+  def escape_char_block(char, write_ptr) do
+    # TODO: create convenience merge of snippet and block.
+    # Both functions and blocks have “return” result values, one returns and one breaks.
+    # Both can declare locals to be declared.
+    Orb.snippet do
+      Control.block :html_escape, I32 do
+        cond2 I32 do
+          char === ?< ->
+            # write_ptr[write_utf8!: "&amp;"]
+            # write_ptr[:utf8!] = "&amp;"
+            Memory.store!(I32.U8, write_ptr + 0, ?&)
+            Memory.store!(I32.U8, write_ptr + 1, ?l)
+            Memory.store!(I32.U8, write_ptr + 2, ?t)
+            Memory.store!(I32.U8, write_ptr + 3, ?;)
+            i32(4)
+
+          char === ?> ->
+            Memory.store!(I32.U8, write_ptr + 0, ?&)
+            Memory.store!(I32.U8, write_ptr + 1, ?g)
+            Memory.store!(I32.U8, write_ptr + 2, ?t)
+            Memory.store!(I32.U8, write_ptr + 3, ?;)
+            i32(4)
+
+          char === ?& ->
+            Memory.store!(I32.U8, write_ptr + 0, ?&)
+            # Memory.store!(I32.U8, write_ptr + 0, ?&)
+            Memory.store!(I32.U8, write_ptr + 1, ?a)
+            Memory.store!(I32.U8, write_ptr + 2, ?m)
+            Memory.store!(I32.U8, write_ptr + 3, ?p)
+            Memory.store!(I32.U8, write_ptr + 4, ?;)
+            i32(5)
+
+          char === ?" ->
+            Memory.store!(I32.U8, write_ptr + 0, ?&)
+            Memory.store!(I32.U8, write_ptr + 1, ?q)
+            Memory.store!(I32.U8, write_ptr + 2, ?u)
+            Memory.store!(I32.U8, write_ptr + 3, ?o)
+            Memory.store!(I32.U8, write_ptr + 4, ?t)
+            Memory.store!(I32.U8, write_ptr + 5, ?;)
+            i32(6)
+
+          char === ?' ->
+            Memory.store!(I32.U8, write_ptr + 0, ?&)
+            Memory.store!(I32.U8, write_ptr + 1, ?#)
+            Memory.store!(I32.U8, write_ptr + 2, ?3)
+            Memory.store!(I32.U8, write_ptr + 3, ?9)
+            Memory.store!(I32.U8, write_ptr + 4, ?;)
+            i32(5)
+
+          true ->
+            Memory.store!(I32.U8, write_ptr, char)
+            i32(1)
+        end
+      end
     end
   end
 

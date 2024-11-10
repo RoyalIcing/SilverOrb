@@ -14,43 +14,70 @@ defmodule HTMLTest do
     # end
 
     # export do
-      global I32, :mutable do
-        @input_size 0
-      end
+    global I32, :mutable do
+      @input_size 0
+      @output_size 0
+    end
+
     # end
+
+    defp input_ptr(), do: 0x0
 
     defw set_input_size(new_size: I32) do
       @input_size = new_size
+    end
+
+    defp output_ptr(), do: Memory.page_byte_size()
+
+    defw read_output(), Str do
+      {output_ptr(), @output_size}
     end
 
     defw count(char: I32.U8), I32 do
       SilverOrb.HTML.escape_char_count(char)
     end
 
-    defw count_input(), I32, slice: Memory.Slice, count: I32 do
-      slice = Memory.Slice.from(i32(0x0), @input_size)
+    defw count_input(), I32, input: Memory.Slice, count: I32 do
+      input = Memory.Slice.from(i32(input_ptr()), @input_size)
       count = 0
 
-      loop char <- slice do
+      loop char <- input do
         count = count + SilverOrb.HTML.escape_char_count(char)
       end
 
       count
     end
 
-    # defw escape_input() do
-    #   SilverOrb.HTML.escape_char(char)
-    # end
+    defw escape_input(), input: Memory.Slice, output_so_far: I32, output_size: I32 do
+      input = Memory.Slice.from(i32(input_ptr()), @input_size)
+
+      Memory.store!(I32.U8, output_ptr() + 0, ??)
+
+      loop char <- input do
+        output_so_far = output_so_far + SilverOrb.HTML.escape_char(char, output_ptr() + output_so_far)
+        
+        # output_so_far =
+        #   output_so_far + SilverOrb.HTML.escape_char_block(char, output_ptr() + output_so_far)
+
+        # Memory.store!(I32.U8, output_ptr() + output_so_far, char)
+        # output_so_far = output_so_far + 1
+      end
+
+      @output_size = output_so_far
+      # |> dbg()
+      # |> put_in([Access.key!(:body), Access.at!(0), Access.key!(:body), Access.key!(:push_type)], nil)
+    end
   end
 
   setup do
     wat = Orb.to_wat(HTMLExample)
-    IO.puts(wat)
+    # IO.puts(wat)
     %{wat: wat}
   end
 
   defp expect_0({:ok, []}), do: nil
   defp expect_1({:ok, [value]}), do: value
+  defp expect_2({:ok, [first, second]}), do: {first, second}
 
   setup %{wat: wat} do
     {:ok, pid} = Wasmex.start_link(%{bytes: wat})
@@ -60,7 +87,9 @@ defmodule HTMLTest do
     call = %{
       count: &expect_1(Wasmex.call_function(pid, "count", [&1])),
       set_input_size: &expect_0(Wasmex.call_function(pid, "set_input_size", [&1])),
-      count_input: fn -> expect_1(Wasmex.call_function(pid, "count_input", [])) end
+      count_input: fn -> expect_1(Wasmex.call_function(pid, "count_input", [])) end,
+      escape_input: fn -> expect_0(Wasmex.call_function(pid, "escape_input", [])) end,
+      read_output: fn -> expect_2(Wasmex.call_function(pid, "read_output", [])) end
     }
 
     %{pid: pid, memory: memory, store: store, call: call}
@@ -73,16 +102,30 @@ defmodule HTMLTest do
     assert call.count.(?') === 5
 
     assert call.count_input.() === 0
-    Wasmex.Memory.write_binary(store, memory, 0x0, "bangers & mash")
-    call.set_input_size.(byte_size("bangers & mash"))
+    input = "bangers & mash"
+    Wasmex.Memory.write_binary(store, memory, 0x0, input)
+    call.set_input_size.(byte_size(input))
     assert call.count_input.() === 18
   end
 
   test "escape", %{store: store, memory: memory, call: call} do
-    assert call.count.(?a) === 1
-    assert call.count.(?&) === 5
-    assert call.count.(?") === 6
-    assert call.count.(?') === 5
+    input = "bangers & mash"
+    Wasmex.Memory.write_binary(store, memory, 0x0, input)
+    call.set_input_size.(byte_size(input))
+
+    # t_start = NaiveDateTime.utc_now()
+    # Enum.each(0..10_000, fn _ ->
+    #   call.escape_input.()
+    # end)
+    # t_end = NaiveDateTime.utc_now()
+    # IO.inspect(NaiveDateTime.diff(t_end, t_start, :millisecond), label: "DURATION")
+    
+    call.escape_input.()
+
+    {output_ptr, output_len} = call.read_output.()
+    output = Wasmex.Memory.read_string(store, memory, output_ptr, output_len)
+
+    assert output === "bangers &amp; mash"
   end
 
   #   test "escapes html", %{pid: pid, store: store, memory: memory} do
