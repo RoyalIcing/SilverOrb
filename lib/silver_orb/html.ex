@@ -170,6 +170,11 @@ defmodule SilverOrb.HTML do
         i32(1)
     end
   end
+  
+  # Creates a snippet with an optional result type.
+  # Does compile-time asserts that the types match.
+  # defwblock escape_char(char: I32, write_ptr: I32.UnsafePointer) -> I32 do
+  # end
 
   def escape_char_block(char, write_ptr) do
     # TODO: create convenience merge of snippet and block.
@@ -179,8 +184,9 @@ defmodule SilverOrb.HTML do
       Control.block :html_escape, I32 do
         cond2 I32 do
           char === ?< ->
-            # write_ptr[write_utf8!: "&amp;"]
-            # write_ptr[:utf8!] = "&amp;"
+            # write_ptr[write_utf8!: "&lt;"]
+            # write_ptr[:utf8!] = "&lt;"
+            # write_ptr[..] = "&lt;"
             Memory.store!(I32.U8, write_ptr + 0, ?&)
             Memory.store!(I32.U8, write_ptr + 1, ?l)
             Memory.store!(I32.U8, write_ptr + 2, ?t)
