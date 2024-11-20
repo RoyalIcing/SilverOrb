@@ -124,8 +124,8 @@ defmodule SilverOrb.HTML do
       char === ?< ->
         # write_ptr[write_utf8!: "&amp;"]
         # write_ptr[:utf8!] = "&amp;"
-        Memory.store!(I32.U8, write_ptr + 0, ?&)
-        # write_ptr[at!: 0] = ?&
+        # Memory.store!(I32.U8, write_ptr + 0, ?&)
+        write_ptr[at!: 0] = ?&
         write_ptr[at!: 1] = ?l
         write_ptr[at!: 2] = ?t
         write_ptr[at!: 3] = ?;
@@ -170,19 +170,19 @@ defmodule SilverOrb.HTML do
         i32(1)
     end
   end
-  
+
   # Creates a snippet with an optional result type.
   # Does compile-time asserts that the types match.
   # defwblock escape_char(char: I32, write_ptr: I32.UnsafePointer) -> I32 do
   # end
   # defwblock fibonacci(n: I32, acc: I32) -> I32 do
-    # if n <= 1 do
-    #   return acc
-    #   # {:halt, acc}
-    # end
-    
-    # fibonacci(n - 1, acc + n)
-    # # {:cont, {n - 1, acc + n}}
+  # if n <= 1 do
+  #   return acc
+  #   # {:halt, acc}
+  # end
+
+  # fibonacci(n - 1, acc + n)
+  # # {:cont, {n - 1, acc + n}}
   # end
 
   def escape_char_block(char, write_ptr) do

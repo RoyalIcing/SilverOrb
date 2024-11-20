@@ -19,6 +19,7 @@ defmodule SilverOrb.SQLite3Format do
   use Orb
 
   # See also: https://programmersstone.blog/posts/scrappy-parsing/
+  # https://mrsuh.com/articles/2024/sqlite-index-visualization-structure/
 
   Memory.pages(100)
 
@@ -87,5 +88,32 @@ defmodule SilverOrb.SQLite3Format do
       Memory.load!(I32.U8, ptr + 1) |> I32.shl(16) |||
       Memory.load!(I32.U8, ptr + 2) |> I32.shl(8) |||
       Memory.load!(I32.U8, ptr + 3)
+  end
+
+  # TODO: change return value to {I64, I32}
+  defw parse_varint(ptr: I32.UnsafePointer), {I32, I32},
+    int: I32,
+    size: I32,
+    new_int: I32,
+    high_bit: I32 do
+    loop offset <- 0..8 do
+      new_int = Memory.load!(I32.U8, ptr + offset)
+      high_bit = new_int &&& 0b1000_0000
+      new_int = new_int &&& 0b0111_1111
+      # <<high_bit::1, new_int::7>> = Memory.load!(I32.U8, ptr + 0)
+
+      if size === 8 do
+        return(%Orb.InstructionSequence{body: [{(int <<< 8) + new_int, size + 1}]})
+      end
+
+      if high_bit === 0 do
+        return(%Orb.InstructionSequence{body: [{(int <<< 7) + new_int, size + 1}]})
+      end
+
+      int = (int <<< 7) + new_int
+      size = size + 1
+    end
+
+    {int, size}
   end
 end

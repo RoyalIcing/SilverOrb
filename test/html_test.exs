@@ -52,8 +52,9 @@ defmodule HTMLTest do
       input = Memory.Slice.from(i32(input_ptr()), @input_size)
 
       loop char <- input do
-        output_so_far = output_so_far + SilverOrb.HTML.escape_char(char, output_ptr() + output_so_far)
-        
+        output_so_far =
+          output_so_far + SilverOrb.HTML.escape_char(char, output_ptr() + output_so_far)
+
         # output_so_far =
         #   output_so_far + SilverOrb.HTML.escape_char_block(char, output_ptr() + output_so_far)
       end
@@ -112,7 +113,7 @@ defmodule HTMLTest do
     # end)
     # t_end = NaiveDateTime.utc_now()
     # IO.inspect(NaiveDateTime.diff(t_end, t_start, :millisecond), label: "DURATION")
-    
+
     call.escape_input.()
 
     {output_ptr, output_len} = call.read_output.()
