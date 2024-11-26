@@ -31,7 +31,7 @@ defmodule SQLite3FormatTest do
     }
   end
 
-  test "file exists", %{pid: pid, write_binary: write_binary} do
+  test "reading file", %{pid: pid, read_binary: read_binary, write_binary: write_binary} do
     db_bytes = countries_database()
 
     assert <<
@@ -40,47 +40,47 @@ defmodule SQLite3FormatTest do
              # 2-byte page size
              page_size::16,
              # 1-byte file format write version
-             file_format_write_version::8,
+             _file_format_write_version::8,
              # 1-byte file format read version
-             file_format_read_version::8,
+             _file_format_read_version::8,
              # 1-byte reserved space per page
-             reserved_space::8,
+             _reserved_space::8,
              # 1-byte max embedded payload fraction
-             max_embedded_payload_fraction::8,
+             _max_embedded_payload_fraction::8,
              # 1-byte min embedded payload fraction
-             min_embedded_payload_fraction::8,
+             _min_embedded_payload_fraction::8,
              # 1-byte leaf payload fraction
-             leaf_payload_fraction::8,
+             _leaf_payload_fraction::8,
              # 4-byte file change counter
-             file_change_counter::32,
+             _file_change_counter::32,
              # 4-byte database size in pages
              db_size_in_pages::32,
              # 4-byte first freelist trunk page
-             first_freelist_page::32,
+             _first_freelist_page::32,
              # 4-byte total number of freelist pages
-             total_freelist_pages::32,
+             _total_freelist_pages::32,
              # 4-byte schema cookie
-             schema_cookie::32,
+             _schema_cookie::32,
              # 4-byte schema format number
-             schema_format::32,
+             _schema_format::32,
              # 4-byte default page cache size
-             default_page_cache_size::32,
+             _default_page_cache_size::32,
              # 4-byte page number of largest B-tree root
-             largest_btree_root::32,
+             _largest_btree_root::32,
              # 4-byte text encoding
              text_encoding::32,
              # 4-byte user version
-             user_version::32,
+             _user_version::32,
              # 4-byte incremental-vacuum mode
-             incremental_vacuum::32,
+             _incremental_vacuum::32,
              # 4-byte application ID
-             application_id::32,
+             _application_id::32,
              # Reserved space (20 bytes)
              _reserved::binary-size(20),
              # 4-byte version-valid-for number
-             version_valid_for::32,
+             _version_valid_for::32,
              # 4-byte SQLite version number
-             sqlite_version::32,
+             _sqlite_version::32,
              # Rest of the binary data
              _rest::binary
            >> = db_bytes
@@ -106,16 +106,22 @@ defmodule SQLite3FormatTest do
     assert cell_count == 2
     assert cell_offset == 3875
 
-    assert {:ok, [byte_count_0, byte_count_1]} =
+    assert {:ok, [rowid, payload_ptr, payload_size]} =
              Wasmex.call_function(pid, "read_btree_table_leaf_cell", [
-               cell_offset,
-               len - cell_offset
+               ptr,
+               len,
+               0,
+               0
              ])
+
+    s = read_binary.(payload_ptr, payload_size)
 
     dbg(cell_count)
     dbg(cell_offset)
-    dbg(byte_count_0)
-    dbg(byte_count_1)
+    dbg(rowid)
+    dbg(payload_ptr)
+    dbg(payload_size)
+    dbg(s)
   end
 
   # From https://programmersstone.blog/posts/scrappy-parsing/
@@ -136,16 +142,16 @@ defmodule SQLite3FormatTest do
     assert parse_varint(<<127>>) === {127, 1}
     assert parse_varint(<<0x81, 0x23>>) === {163, 2}
     assert parse_varint(<<0xFF, 0x7F>>) === {16383, 2}
-    
+
     write_binary.(0x100, <<65>>)
     assert call_function.("parse_varint", [0x100]) === {:ok, [65, 1]}
-    
+
     write_binary.(0x200, <<127>>)
     assert call_function.("parse_varint", [0x200]) === {:ok, [127, 1]}
-    
+
     write_binary.(0x300, <<0x81, 0x23>>)
     assert call_function.("parse_varint", [0x300]) === {:ok, [163, 2]}
-    
+
     write_binary.(0x400, <<0xFF, 0x7F>>)
     assert call_function.("parse_varint", [0x400]) === {:ok, [16383, 2]}
   end

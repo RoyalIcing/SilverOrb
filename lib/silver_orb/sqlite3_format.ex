@@ -71,12 +71,24 @@ defmodule SilverOrb.SQLite3Format do
     {cell_count, cell_offset}
   end
 
-  defw read_btree_table_leaf_cell(ptr: I32.UnsafePointer, len: I32), {I32, I32},
-    byte_count_0: I32,
-    byte_count_1: I32 do
-    byte_count_0 = Memory.load!(I32.U8, ptr)
-    byte_count_1 = Memory.load!(I32.U8, ptr + 1)
-    {byte_count_0, byte_count_1}
+  defw read_btree_table_leaf_cell(ptr: I32.UnsafePointer, len: I32, page_index: I32, cell_index: I32), {I32, I32, I32},
+    cell_start: I32.UnsafePointer,
+    content_start: I32.UnsafePointer,
+    payload_size: I32,
+    payload_byte_size: I32,
+    rowid: I32,
+    rowid_byte_size: I32 do
+      cell_start = ptr + 100 + 8
+      content_start = ptr + load_u16_be!(cell_start)
+      
+    {payload_size, payload_byte_size} = parse_varint(content_start)
+    {rowid, rowid_byte_size} = parse_varint(content_start + payload_byte_size)
+
+    {
+      rowid,
+      content_start + payload_byte_size + rowid_byte_size,
+      payload_size
+    }
   end
 
   defwp load_u16_be!(ptr: I32.UnsafePointer), I32 do
