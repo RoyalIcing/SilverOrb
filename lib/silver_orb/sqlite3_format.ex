@@ -71,16 +71,22 @@ defmodule SilverOrb.SQLite3Format do
     {cell_count, cell_offset}
   end
 
-  defw read_btree_table_leaf_cell(ptr: I32.UnsafePointer, len: I32, page_index: I32, cell_index: I32), {I32, I32, I32},
-    cell_start: I32.UnsafePointer,
-    content_start: I32.UnsafePointer,
-    payload_size: I32,
-    payload_byte_size: I32,
-    rowid: I32,
-    rowid_byte_size: I32 do
-      cell_start = ptr + 100 + 8
-      content_start = ptr + load_u16_be!(cell_start)
-      
+  defw read_btree_table_leaf_cell(
+         ptr: I32.UnsafePointer,
+         len: I32,
+         page_index: I32,
+         cell_index: I32
+       ),
+       {I32, I32, I32},
+       cell_start: I32.UnsafePointer,
+       content_start: I32.UnsafePointer,
+       payload_size: I32,
+       payload_byte_size: I32,
+       rowid: I32,
+       rowid_byte_size: I32 do
+    cell_start = ptr + 100 + 8
+    content_start = ptr + load_u16_be!(cell_start)
+
     {payload_size, payload_byte_size} = parse_varint(content_start)
     {rowid, rowid_byte_size} = parse_varint(content_start + payload_byte_size)
 
@@ -88,6 +94,64 @@ defmodule SilverOrb.SQLite3Format do
       rowid,
       content_start + payload_byte_size + rowid_byte_size,
       payload_size
+    }
+  end
+
+  defw read_record(ptr: I32.UnsafePointer, len: I32),
+       {I32, I32.UnsafePointer, I32},
+       seek_ptr: I32,
+       header_bytes: I32,
+       column1: I32,
+       column1_ptr: I32.UnsafePointer,
+       column1_size: I32,
+       column2: I32,
+       column2_ptr: I32.UnsafePointer,
+       column2_size: I32,
+       column3: I32,
+       column3_ptr: I32.UnsafePointer,
+       column3_size: I32,
+       column4: I32,
+       column4_ptr: I32.UnsafePointer,
+       column4_size: I32,
+       column5: I32,
+       column5_ptr: I32.UnsafePointer,
+       column5_size: I32
+       do
+    seek_ptr = ptr
+    header_bytes = parse_varint(mut!(seek_ptr))
+    column1 = parse_varint(mut!(seek_ptr))
+    column2 = parse_varint(mut!(seek_ptr))
+    column3 = parse_varint(mut!(seek_ptr))
+    column4 = parse_varint(mut!(seek_ptr))
+    column5 = parse_varint(mut!(seek_ptr))
+    
+    seek_ptr = ptr + header_bytes
+    
+    column1_ptr = seek_ptr
+    column1_size = I32.div_u(column1 - 13, 2)
+    seek_ptr = seek_ptr + column1_size
+    
+    column2_ptr = seek_ptr
+    column2_size = I32.div_u(column2 - 13, 2)
+    seek_ptr = seek_ptr + column2_size
+    
+    column3_ptr = seek_ptr
+    column3_size = I32.div_u(column3 - 13, 2)
+    seek_ptr = seek_ptr + column3_size
+    
+    column4_ptr = seek_ptr
+    seek_ptr = seek_ptr + 1
+    
+    column5_ptr = seek_ptr
+    column5_size = I32.div_u(column5 - 13, 2)
+    seek_ptr = seek_ptr + column5_size
+
+    {
+      header_bytes,
+      # column1_ptr,
+      # column1_size
+      column5_ptr,
+      column5_size
     }
   end
 
@@ -100,6 +164,17 @@ defmodule SilverOrb.SQLite3Format do
       Memory.load!(I32.U8, ptr + 1) |> I32.shl(16) |||
       Memory.load!(I32.U8, ptr + 2) |> I32.shl(8) |||
       Memory.load!(I32.U8, ptr + 3)
+  end
+
+  def parse_varint(ptr_mut!) when is_struct(ptr_mut!, Orb.MutRef) do
+    %Orb.InstructionSequence{
+      body: [
+        parse_varint(ptr_mut!.read),
+        I32.add(ptr_mut!.read, Orb.Stack.pop(I32)),
+        ptr_mut!.write
+      ],
+      push_type: I32
+    }
   end
 
   # TODO: change return value to {I64, I32}

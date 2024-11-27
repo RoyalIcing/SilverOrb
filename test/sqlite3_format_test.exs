@@ -114,7 +114,13 @@ defmodule SQLite3FormatTest do
                0
              ])
 
-    s = read_binary.(payload_ptr, payload_size)
+    assert {:ok, [header_bytes, column_ptr, column_size]} =
+             Wasmex.call_function(pid, "read_record", [
+               payload_ptr,
+               payload_size
+             ])
+
+    s = read_binary.(column_ptr, column_size)
 
     dbg(cell_count)
     dbg(cell_offset)
@@ -122,6 +128,12 @@ defmodule SQLite3FormatTest do
     dbg(payload_ptr)
     dbg(payload_size)
     dbg(s)
+    dbg(header_bytes)
+    dbg(column_ptr)
+    dbg(column_size)
+
+    assert column_ptr === 4137
+    assert column_size === 9
   end
 
   # From https://programmersstone.blog/posts/scrappy-parsing/
