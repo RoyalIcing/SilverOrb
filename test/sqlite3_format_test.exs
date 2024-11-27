@@ -11,8 +11,6 @@ defmodule SQLite3FormatTest do
   end
 
   setup %{wat: wat} do
-    # instance = Instance.run(wat)
-
     {:ok, pid} = Wasmex.start_link(%{bytes: wat})
     {:ok, memory} = Wasmex.memory(pid)
     {:ok, store} = Wasmex.store(pid)
@@ -114,8 +112,8 @@ defmodule SQLite3FormatTest do
                0
              ])
 
-    assert {:ok, [header_bytes, column_ptr, column_size]} =
-             Wasmex.call_function(pid, "read_record", [
+    assert {:ok, [header_bytes, column_ptr, column_size, table_column_count]} =
+             Wasmex.call_function(pid, "read_table_schema", [
                payload_ptr,
                payload_size
              ])
@@ -131,9 +129,9 @@ defmodule SQLite3FormatTest do
     dbg(header_bytes)
     dbg(column_ptr)
     dbg(column_size)
+    dbg(table_column_count)
 
-    assert column_ptr === 4137
-    assert column_size === 9
+    assert table_column_count === 3
   end
 
   # From https://programmersstone.blog/posts/scrappy-parsing/

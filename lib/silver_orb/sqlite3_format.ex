@@ -154,6 +154,90 @@ defmodule SilverOrb.SQLite3Format do
       column5_size
     }
   end
+  
+  # defwi decode_text_size(column: I32) :: I32, do: I32.div_u(column - 13, 2)
+
+  defw read_table_schema(ptr: I32.UnsafePointer, len: I32),
+       {I32, I32.UnsafePointer, I32, I32},
+       seek_ptr: I32,
+       header_bytes: I32,
+       column_type: I32,
+       column_type_ptr: I32.UnsafePointer,
+       column_type_size: I32,
+       column_name: I32,
+       column_name_ptr: I32.UnsafePointer,
+       column_name_size: I32,
+       column_tbl_name: I32,
+       column_tbl_name_ptr: I32.UnsafePointer,
+       column_tbl_name_size: I32,
+       column_rootpage: I32,
+       column_rootpage_ptr: I32.UnsafePointer,
+       column_rootpage_size: I32,
+       column_sql: I32,
+       column_sql_ptr: I32.UnsafePointer,
+       column_sql_size: I32,
+       table_column_count: I32
+       do
+    seek_ptr = ptr
+    header_bytes = parse_varint(mut!(seek_ptr))
+    column_type = parse_varint(mut!(seek_ptr))
+    column_name = parse_varint(mut!(seek_ptr))
+    column_tbl_name = parse_varint(mut!(seek_ptr))
+    column_rootpage = parse_varint(mut!(seek_ptr))
+    column_sql = parse_varint(mut!(seek_ptr))
+    
+    seek_ptr = ptr + header_bytes
+    
+    column_type_ptr = seek_ptr
+    column_type_size = I32.div_u(column_type - 13, 2)
+    seek_ptr = seek_ptr + column_type_size
+    
+    assert! Memory.load!(I32, column_type_ptr) === I32.from_4_byte_ascii("tabl")
+    
+    column_name_ptr = seek_ptr
+    column_name_size = I32.div_u(column_name - 13, 2)
+    seek_ptr = seek_ptr + column_name_size
+    
+    column_tbl_name_ptr = seek_ptr
+    column_tbl_name_size = I32.div_u(column_tbl_name - 13, 2)
+    seek_ptr = seek_ptr + column_tbl_name_size
+    
+    column_rootpage_ptr = seek_ptr
+    seek_ptr = seek_ptr + 1
+    
+    column_sql_ptr = seek_ptr
+    column_sql_size = I32.div_u(column_sql - 13, 2)
+    seek_ptr = seek_ptr + column_sql_size
+    
+    table_column_count = parse_create_table_sql(column_sql_ptr, column_sql_size)
+
+    {
+      header_bytes,
+      column_sql_ptr,
+      column_sql_size,
+      table_column_count
+    }
+  end
+  
+  defwp parse_create_table_sql(ptr: I32.UnsafePointer, len: I32), I32, count: I32, input: Memory.Slice do
+    assert! Memory.load!(I32, ptr) === I32.from_4_byte_ascii("CREA")
+    assert! Memory.load!(I32, ptr + 4) === I32.from_4_byte_ascii("TE T")
+    assert! Memory.load!(I32, ptr + 8) === I32.from_4_byte_ascii("ABLE")
+    
+    input = Memory.Slice.from(ptr + 12, len)
+    
+    # assert! Memory.Slice.read!(mut!(input), I32) === I32.from_4_byte_ascii("CREA")
+    # assert! Memory.Slice.read!(mut!(input), I32) === I32.from_4_byte_ascii("TE T")
+    # assert! Memory.Slice.read!(mut!(input), I32) === I32.from_4_byte_ascii("ABLE")
+    
+    loop char <- input do
+      if char === ?, or char === ?) do
+        count = count + 1
+      end
+    end
+    
+    count
+  end
 
   defwp load_u16_be!(ptr: I32.UnsafePointer), I32 do
     Memory.load!(I32.U8, ptr) <<< 8 ||| Memory.load!(I32.U8, ptr + 1)
