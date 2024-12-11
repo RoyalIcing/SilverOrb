@@ -132,7 +132,7 @@ defmodule SilverOrb.StringBuilder do
 
     {@bump_mark, @bump_offset - @bump_mark}
   end
-  
+
   def write_str(str) do
     bump_write_str(str)
   end
