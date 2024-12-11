@@ -93,7 +93,6 @@ defmodule SilverOrb.StringBuilder do
 
   defmacro __using__(_) do
     quote do
-      # use SilverOrb.Mem
       use SilverOrb.IntFormatter
 
       Orb.include(unquote(__MODULE__))
@@ -133,18 +132,22 @@ defmodule SilverOrb.StringBuilder do
 
     {@bump_mark, @bump_offset - @bump_mark}
   end
+  
+  def write_str(str) do
+    bump_write_str(str)
+  end
 
-  defwp bump_write_str(str_ptr: I32.UnsafePointer, len: I32),
+  defwp bump_write_str(str: Str),
     i: I32,
     char: I32 do
-    return(if: I32.eq(str_ptr, @bump_mark) ||| I32.eqz(len))
+    return(if: I32.eq(str[:ptr], @bump_mark) ||| I32.eqz(str[:size]))
 
     loop EachChar do
-      char = Memory.load!(I32.U8, str_ptr + i)
+      char = Memory.load!(I32.U8, str[:ptr] + i)
 
       Memory.store!(I32.U8, @bump_offset + i, char)
 
-      if i < len do
+      if i < str[:size] do
         i = i + 1
         EachChar.continue()
       end
@@ -157,7 +160,7 @@ defmodule SilverOrb.StringBuilder do
 
     # Memory.store!(I32.U8, @bump_offset + len - 1, ?q)
 
-    @bump_offset = @bump_offset + len
+    @bump_offset = @bump_offset + str[:size]
   end
 
   defwp bump_written?(), I32 do
@@ -214,7 +217,7 @@ defmodule SilverOrb.StringBuilder do
   end
 
   def build_item(%Orb.Str{} = term) do
-    append!(string: term |> dbg())
+    append!(string: term)
   end
 
   def build_item(%{push_type: __MODULE__} = string_builder_call) do
@@ -270,19 +273,7 @@ defmodule SilverOrb.StringBuilder do
   end
 
   def append!(constant) when is_binary(constant) do
-    _ = &bump_write_str/2
-
-    Orb.InstructionSequence.new(nil, [
-      constant,
-      Orb.Instruction.Call.new(
-        nil,
-        [I32.UnsafePointer, I32],
-        :bump_write_str,
-        []
-      )
-    ])
-
-    # bump_write_str(constant)
+    bump_write_str(constant)
   end
 
   def append!(%Orb.Str{string: ""}) do
@@ -304,8 +295,9 @@ defmodule SilverOrb.StringBuilder do
   end
 
   def append!(string: str) do
+    # write_str(str)
     Orb.InstructionSequence.new(nil, [
-      str,
+      Orb.Constants.expand_if_needed(str),
       Orb.Instruction.Call.new(
         nil,
         [:i32, :i32],

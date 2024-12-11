@@ -148,8 +148,6 @@ defmodule SilverOrb.SQLite3Format do
 
     {
       header_bytes,
-      # column1_ptr,
-      # column1_size
       column5_ptr,
       column5_size
     }
