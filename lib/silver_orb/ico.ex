@@ -28,7 +28,7 @@ defmodule SilverOrb.ICO do
     write_ptr + 16
   end
 
-  defwp write_image_data(write_ptr: I32.UnsafePointer, width: I32, height: I32, color: I32),
+  defwp write_image_data(write_ptr: I32.UnsafePointer, width: I32, height: I32, r: I32.U8, g: I32.U8, b: I32.U8),
     y: I32,
     x: I32 do
     Memory.store!(I32, write_ptr, 40)
@@ -50,10 +50,10 @@ defmodule SilverOrb.ICO do
 
       loop Columns do
         # Memory.store!(I32, write_ptr + ((height - y - 1) * width + x) * 4, color)
-        Memory.store!(I32.U8, write_ptr + ((height - y - 1) * width + x) * 4 + 0, 0)
-        Memory.store!(I32.U8, write_ptr + ((height - y - 1) * width + x) * 4 + 1, 255)
-        Memory.store!(I32.U8, write_ptr + ((height - y - 1) * width + x) * 4 + 2, 0)
-        Memory.store!(I32.U8, write_ptr + ((height - y - 1) * width + x) * 4 + 3, 255)
+        Memory.store!(I32.U8, write_ptr + ((height - y - 1) * width + x) * 4 + 0, b)
+        Memory.store!(I32.U8, write_ptr + ((height - y - 1) * width + x) * 4 + 1, g)
+        Memory.store!(I32.U8, write_ptr + ((height - y - 1) * width + x) * 4 + 2, r)
+        Memory.store!(I32.U8, write_ptr + ((height - y - 1) * width + x) * 4 + 3, 0xFF)
 
         x = x + 1
 
@@ -70,10 +70,11 @@ defmodule SilverOrb.ICO do
     end
   end
 
-  defw write(write_ptr: I32.UnsafePointer, width: I32, height: I32, color: I64), I32 do
+  defw write(write_ptr: I32.UnsafePointer, width: I32, height: I32, r: I32.U8, g: I32.U8, b: I32.U8), I32 do
     write_ptr = write_header(write_ptr, 1)
     write_ptr = write_image_directory(write_ptr, width, height, 6 + 16)
-    write_image_data(write_ptr, width, height, I32.wrap_i64(color))
+    # write_image_data(write_ptr, width, height, I32.wrap_i64(color))
+    write_image_data(write_ptr, width, height, r, g, b)
     6 + 16 + 40 + width * height * 4
   end
 end

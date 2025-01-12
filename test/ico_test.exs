@@ -30,7 +30,7 @@ defmodule ICOTest do
 
     write_ptr = Orb.Memory.page_byte_size()
     # {:ok, [byte_count]} = call_function.(:write, [write_ptr, 16, 16, 0x000000FF - 0x80000000])
-    {:ok, [byte_count]} = call_function.(:write, [write_ptr, 16, 16, 0xFFFF0000])
+    {:ok, [byte_count]} = call_function.(:write, [write_ptr, 32, 32, 0xFF, 0x11, 0xBB])
 
     bytes = read_binary.(write_ptr, byte_count)
     File.write!(path, bytes)
