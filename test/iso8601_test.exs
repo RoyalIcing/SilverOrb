@@ -68,4 +68,45 @@ defmodule ISO8601Test do
       assert write_and_parse.("2001-02-28") == [2001, 2, 28]
     end
   end
+
+  describe "parse_time" do
+    setup %{write_binary: write_binary, call_function: call_function} do
+      write_and_parse = fn input ->
+        write_binary.(0x100, String.duplicate("\0", 50))
+        write_binary.(0x100, input)
+        assert {:ok, result} = call_function.(:parse_time, [0x100, byte_size(input)])
+        result
+      end
+
+      %{write_and_parse: write_and_parse}
+    end
+
+    test "invalid times return zero", %{write_and_parse: write_and_parse} do
+      assert write_and_parse.("") == [-1, 0, 0, 0]
+      assert write_and_parse.("abc") == [-1, 0, 0, 0]
+
+      assert write_and_parse.("23:50:61") == [-1, 0, 0, 0]
+      assert write_and_parse.("23:50:60") == [-1, 0, 0, 0]
+      assert write_and_parse.("24:00:00") == [-1, 0, 0, 0]
+
+      assert write_and_parse.("12:34:56A") == [-1, 0, 0, 0]
+      assert write_and_parse.("12:34:56.789123A") == [-1, 0, 0, 0]
+      assert write_and_parse.("12:34:56.789A") == [-1, 0, 0, 0]
+    end
+
+    test "valid times parse correctly", %{write_and_parse: write_and_parse} do
+      assert write_and_parse.("12:34:56") == [12, 34, 56, 0]
+      assert write_and_parse.("23:50:07") == [23, 50, 7, 0]
+      assert write_and_parse.("00:14:55") == [0, 14, 55, 0]
+      assert write_and_parse.("00:00:00") == [0, 0, 0, 0]
+      
+      assert write_and_parse.("12:34:56.789123") == [12, 34, 56, 789123]
+      assert write_and_parse.("12:34:56.789") == [12, 34, 56, 789000]
+      assert write_and_parse.("12:34:56.7") == [12, 34, 56, 700000]
+      assert write_and_parse.("12:34:56.0") == [12, 34, 56, 0]
+      # assert write_and_parse.("12:34:56.789123567") == [12, 34, 56, 789123]
+
+      assert write_and_parse.("T23:50:07") == [23, 50, 7, 0]
+    end
+  end
 end
