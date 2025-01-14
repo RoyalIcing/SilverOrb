@@ -165,7 +165,7 @@ defmodule PodcastFeedTest do
     assert size == 2436
 
     %{size: size} = File.stat!(path_opt_wasm)
-    assert size == 1996
+    assert size == 1984
 
     {wat, 0} = System.cmd("wasm2wat", [path_wasm])
     File.write!(path_wat, wat)

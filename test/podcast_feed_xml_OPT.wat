@@ -73,7 +73,6 @@
     i32.add
     global.set 0)
   (func (;7;) (type 3) (param i32 i32)
-    (local i32 i32)
     call 4
     i32.const 758
     i32.const 2
@@ -85,8 +84,8 @@
     i32.const 2
     call 6
     call 5
-    local.set 3
-    local.set 2)
+    drop
+    drop)
   (func (;8;) (type 5) (param i32 i32 i32 i32)
     call 4
     i32.const 764
@@ -296,7 +295,6 @@
       br_if 0 (;@1;)
     end)
   (func (;10;) (type 0) (result i32 i32)
-    (local i32 i32)
     call 4
     i32.const 419
     i32.const 39
@@ -461,10 +459,7 @@
     i32.const 754
     i32.const 3
     call 7
-    call 5
-    local.set 1
-    local.tee 0
-    local.get 1)
+    call 5)
   (memory (;0;) 67)
   (global (;0;) (mut i32) (i32.const 65536))
   (global (;1;) (mut i32) (i32.const 0))
