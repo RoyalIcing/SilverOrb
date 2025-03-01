@@ -3,13 +3,13 @@ defmodule SilverOrb.UTF8 do
 
   # Used for testing
   Memory.pages(2)
-  
+
   @doc """
   Counts the number of code points in a UTF-8 string.
-  
+
   This differs from length/1 which counts grapheme clusters (visible characters).
   Code points are the individual Unicode scalar values that make up the string.
-  
+
   For example:
   - "a" has 1 code point (U+0061)
   - "é" can be 1 code point (U+00E9) or 2 code points (U+0065 + U+0301)
@@ -87,7 +87,7 @@ defmodule SilverOrb.UTF8 do
 
       byte0 = Memory.load!(I32.U8, str_ptr + i)
 
-      I32.cond do
+      cond result: nil do
         # 0xxxxxxx
         I32.band(byte0, 0x80) === 0x00 ->
           i = i + 1
