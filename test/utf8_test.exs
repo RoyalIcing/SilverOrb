@@ -59,7 +59,7 @@ defmodule UTF8Test do
   setup context do
     write_and_call = fn s, f ->
       input_ptr = Orb.Memory.page_byte_size()
-      context.write_binary.(input_ptr, s)
+      context.write_binary.(input_ptr, s <> <<0>>)
       context.call_function.(f, [input_ptr, byte_size(s)])
     end
 
@@ -85,6 +85,13 @@ defmodule UTF8Test do
     # assert 0 = wasm_valid?(i, "\xc3\xb1")
   end
 
+  def length_control(string, write_and_call) do
+    elixir_length = String.length(string)
+    assert {:ok, [wasm_length]} = write_and_call.(string, :length)
+    assert {string, elixir_length} === {string, wasm_length}
+    wasm_length
+  end
+
   test "length/1", %{write_and_call: write_and_call} do
     assert {:ok, [3]} = write_and_call.("abc", :length)
     assert {:ok, [5]} = write_and_call.("եոգլի", :length)
@@ -94,22 +101,49 @@ defmodule UTF8Test do
     assert 1 = String.length(latin_e_with_acute)
     assert {:ok, [1]} = write_and_call.(latin_e_with_acute, :length)
 
+    # Test word with combining marks
+    # A with macron and grave accent
+    combining_mark_example = "Ā̀stute"
+    assert 9 = byte_size(combining_mark_example)
+    assert 6 = String.length(combining_mark_example)
+    assert {:ok, [6]} = write_and_call.(combining_mark_example, :length)
+
     # Testing an emoji
     simple_emoji = "😀"
     assert 4 = byte_size(simple_emoji)
     assert 1 = String.length(simple_emoji)
     assert {:ok, [1]} = write_and_call.(simple_emoji, :length)
-    
+
     # Testing emoji with skin tone modifier
     emoji_with_modifier = "👍🏼"
     assert 8 = byte_size(emoji_with_modifier)
     assert 1 = String.length(emoji_with_modifier)
     assert {:ok, [1]} = write_and_call.(emoji_with_modifier, :length)
-    
-    # Testing complex emoji sequence with ZWJ
+
+    # Testing complex emoji sequence with Zero-Width Joiners
     face_palm_emoji = "🤦🏼‍♂️"
     assert 17 = byte_size(face_palm_emoji)
     assert 1 = String.length(face_palm_emoji)
     assert {:ok, [1]} = write_and_call.(face_palm_emoji, :length)
+
+    # Testing flag emoji (regional indicators)
+    # US flag
+    flag_emoji = "🇺🇸"
+    assert 8 = byte_size(flag_emoji)
+    assert 1 = String.length(flag_emoji)
+    assert {:ok, [1]} = write_and_call.(flag_emoji, :length)
+
+    assert length_control("elixir", write_and_call) == 6
+    assert length_control("elixrí", write_and_call) == 6
+    assert length_control("եոգլից", write_and_call) == 6
+    assert length_control("ліксрэ", write_and_call) == 6
+    assert length_control("ειξήριολ", write_and_call) == 8
+    assert length_control("סם ייםח", write_and_call) == 7
+    assert length_control("がガちゃ", write_and_call) == 4
+    assert length_control("Ā̀stute", write_and_call) == 6
+    assert length_control("👨‍👩‍👧‍👦", write_and_call) == 1
+    assert length_control("👨‍⚕️", write_and_call) == 1
+    assert length_control("👩‍🚀", write_and_call) == 1
+    assert length_control("", write_and_call) == 0
   end
 end

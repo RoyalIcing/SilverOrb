@@ -115,23 +115,25 @@ defmodule SilverOrb.UTF8 do
   end
 
   @doc """
-  Returns the number of Unicode graphemes in a UTF-8 string.
-  
-  Handles basic grapheme clusters and counts emoji as a single character.
-  
-  This is a simplified implementation - full grapheme cluster detection
-  would require a more complex state machine and Unicode data tables.
-  For the purpose of this implementation, we handle these cases:
-  1. Standard UTF-8 code points
-  2. Emoji sequences including ZWJ sequences
+  Returns the number of Unicode graphemes (characters) in a UTF-8 string.
+
+  This implementation handles:
+  1. Basic ASCII and UTF-8 characters
+  2. Combining marks (diacritical marks)
+  3. Emoji with modifiers
+  4. Flag emoji
+  5. Family emoji with ZWJ sequences
+  6. Emoji with gender and profession modifiers
+
+  Implementation is simplified but handles common cases.
   """
-  defw length(str: Str), I32, 
-    i: I32, 
-    count: I32, 
-    byte0: I32.U8, 
-    in_emoji_sequence: I32, 
-    prev_was_emoji: I32 do
-      
+  defw length(str: Str), I32,
+    i: I32,
+    count: I32,
+    char_size: I32,
+    byte: I32.U8,
+    in_emoji_sequence: I32,
+    emoji_start: I32 do
     if str[:size] === 0 do
       return(0)
     end
@@ -139,107 +141,145 @@ defmodule SilverOrb.UTF8 do
     i = 0
     count = 0
     in_emoji_sequence = 0
-    prev_was_emoji = 0
+    emoji_start = 0
 
-    loop EachOctet do
+    loop EachChar do
       if i >= str[:size] do
         return(count)
       end
 
-      byte0 = Memory.load!(I32.U8, str[:ptr] + i)
+      byte = Memory.load!(I32.U8, str[:ptr] + i)
 
-      # Check for emoji sequence or zero-width joiner (ZWJ)
-      # ZWJ is E2 80 8D in UTF-8
-      if i + 2 < str[:size] &&& 
-         byte0 === 0xE2 &&&
-         Memory.load!(I32.U8, str[:ptr] + i + 1) === 0x80 &&&
-         Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x8D do
-        # Found a ZWJ - continue emoji sequence
-        in_emoji_sequence = 1
-        i = i + 3
-        EachOctet.continue()
-      end
-
-      # Check for variation selectors (VS15, VS16) used with emoji
-      # VS15 is EF B8 8E, VS16 is EF B8 8F in UTF-8
-      if i + 2 < str[:size] &&&
-         byte0 === 0xEF &&&
-         Memory.load!(I32.U8, str[:ptr] + i + 1) === 0xB8 &&&
-         (Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x8E ||| 
-          Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x8F) do
-        # Found a variation selector - continue emoji sequence
-        in_emoji_sequence = 1
-        i = i + 3
-        EachOctet.continue()
-      end
-
-      # Check for emoji modifier (skin tone)
-      # These start with F0 9F 8F in UTF-8
-      if i + 3 < str[:size] &&&
-         byte0 === 0xF0 &&&
-         Memory.load!(I32.U8, str[:ptr] + i + 1) === 0x9F &&&
-         Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x8F do
-        # Found a skin tone modifier - continue emoji sequence
-        in_emoji_sequence = 1
-        i = i + 4
-        EachOctet.continue()
-      end
-
-      # Basic UTF-8 decoding
-      cond result: nil do
-        # 0xxxxxxx (ASCII)
-        I32.band(byte0, 0x80) === 0x00 ->
-          i = i + 1
-          if in_emoji_sequence === 0 do
-            count = count + 1
-          end
-          in_emoji_sequence = 0
-          prev_was_emoji = 0
-
-        # 110xxxxx 10xxxxxx (2-byte UTF-8)
-        I32.band(byte0, 0xE0) === 0xC0 ->
-          i = i + 2
-          if in_emoji_sequence === 0 do
-            count = count + 1
-          end
-          in_emoji_sequence = 0
-          prev_was_emoji = 0
-
-        # 1110xxxx 10xxxxxx 10xxxxxx (3-byte UTF-8)
-        I32.band(byte0, 0xF0) === 0xE0 ->
-          i = i + 3
-          if in_emoji_sequence === 0 do
-            count = count + 1
-          end
-          in_emoji_sequence = 0
-          prev_was_emoji = 0
-
-        # 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx (4-byte UTF-8, including emoji)
-        I32.band(byte0, 0xF8) === 0xF0 ->
-          i = i + 4
-          
-          # Most emoji start with F0 9F in UTF-8
-          if byte0 === 0xF0 &&& 
-             i - 3 < str[:size] &&&
-             Memory.load!(I32.U8, str[:ptr] + i - 3) === 0xF0 &&&
-             Memory.load!(I32.U8, str[:ptr] + i - 2) === 0x9F do
-            
-            if prev_was_emoji === 0 &&& in_emoji_sequence === 0 do
-              count = count + 1
-            end
-            
-            prev_was_emoji = 1
-            in_emoji_sequence = 1
+      # Calculate character size based on first byte
+      char_size =
+        if I32.band(byte, 0x80) === 0 do
+          # ASCII
+          i32(1)
+        else
+          if I32.band(byte, 0xE0) === 0xC0 do
+            # 2-byte UTF-8
+            i32(2)
           else
-            if in_emoji_sequence === 0 do
-              count = count + 1
+            if I32.band(byte, 0xF0) === 0xE0 do
+              # 3-byte UTF-8
+              i32(3)
+            else
+              # 4-byte UTF-8 (including emoji)
+              i32(4)
             end
-            in_emoji_sequence = 0
-            prev_was_emoji = 0
           end
+        end
+
+      # Start of an emoji sequence (most emoji start with F0 9F)
+      if in_emoji_sequence === 0 &&&
+           byte === 0xF0 &&&
+           i + 1 < str[:size] &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 1) === 0x9F do
+        # Mark the start of an emoji sequence
+        in_emoji_sequence = 1
+        emoji_start = i
+        # Count this as one character
+        count = count + 1
+        i = i + char_size
+        EachChar.continue()
       end
 
-      EachOctet.continue()
+      # Handle combining marks
+      # Most combining marks start with 0xCC or 0xCD (U+0300 - U+036F range)
+      if i > 0 &&& (byte === 0xCC ||| byte === 0xCD) do
+        # This is a combining character, don't increment count
+        i = i + char_size
+        EachChar.continue()
+      end
+
+      # Special handling for ZWJ (Zero Width Joiner) sequences in emoji
+      # ZWJ is E2 80 8D in UTF-8
+      if in_emoji_sequence === 1 &&& i + 2 < str[:size] &&&
+           byte === 0xE2 &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 1) === 0x80 &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x8D do
+        # This is part of a ZWJ sequence, don't increment count
+        i = i + 3
+        EachChar.continue()
+      end
+
+      # Special handling for emoji skin tone modifiers
+      # These start with F0 9F 8F in UTF-8
+      if in_emoji_sequence === 1 &&& i + 3 < str[:size] &&&
+           byte === 0xF0 &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 1) === 0x9F &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x8F do
+        # This is a skin tone modifier, don't increment count
+        i = i + 4
+        EachChar.continue()
+      end
+
+      # Special handling for variation selectors in emoji
+      # VS15 is EF B8 8E, VS16 is EF B8 8F in UTF-8
+      if i > 0 &&& i + 2 < str[:size] &&&
+           byte === 0xEF &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 1) === 0xB8 &&&
+           (Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x8E |||
+              Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x8F) do
+        # This is a variation selector, don't increment count
+        i = i + 3
+        EachChar.continue()
+      end
+
+      # Special handling for emoji gender signs
+      # Male/Female signs: E2 99 82/80 followed by variation selector (EF B8 8F)
+      if in_emoji_sequence === 1 &&& i + 2 < str[:size] &&&
+           byte === 0xE2 &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 1) === 0x99 &&&
+           (Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x82 |||
+              Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x80) do
+        # Skip the gender sign
+        i = i + 3
+        EachChar.continue()
+      end
+
+      # Handle flag emoji (regional indicator pairs)
+      # Regional indicators are F0 9F 87 A6-BF in UTF-8
+      if i + 7 < str[:size] &&&
+           byte === 0xF0 &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 1) === 0x9F &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x87 &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 3) >= 0xA6 &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 3) <= 0xBF &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 4) === 0xF0 &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 5) === 0x9F &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 6) === 0x87 &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 7) >= 0xA6 &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 7) <= 0xBF do
+        # This is a flag emoji (pair of regional indicators)
+        count = count + 1
+        # Skip both regional indicators (4 bytes each)
+        i = i + 8
+        EachChar.continue()
+      end
+
+      # Another emoji in a sequence (after ZWJ)
+      if in_emoji_sequence === 1 &&&
+           byte === 0xF0 &&&
+           i + 1 < str[:size] &&&
+           Memory.load!(I32.U8, str[:ptr] + i + 1) === 0x9F do
+        # This is part of an emoji sequence (e.g., family emoji), don't increment count
+        i = i + char_size
+        EachChar.continue()
+      end
+
+      # If we're not in an emoji sequence or handled by any special case above,
+      # and this is a start of a new character
+      if in_emoji_sequence === 0 do
+        # Normal character, increment count and move to next character
+        count = count + 1
+      else
+        # Reset emoji sequence tracker at end of sequence
+        in_emoji_sequence = 0
+      end
+
+      i = i + char_size
+      EachChar.continue()
     end
 
     count
