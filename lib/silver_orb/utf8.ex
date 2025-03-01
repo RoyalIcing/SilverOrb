@@ -114,42 +114,129 @@ defmodule SilverOrb.UTF8 do
     1
   end
 
-  @doc "Returns the number of Unicode graphemes in a UTF-8 string."
-  defw length(str: Str), I32, i: I32, count: I32, byte0: I32.U8 do
+  @doc """
+  Returns the number of Unicode graphemes in a UTF-8 string.
+  
+  Handles basic grapheme clusters and counts emoji as a single character.
+  
+  This is a simplified implementation - full grapheme cluster detection
+  would require a more complex state machine and Unicode data tables.
+  For the purpose of this implementation, we handle these cases:
+  1. Standard UTF-8 code points
+  2. Emoji sequences including ZWJ sequences
+  """
+  defw length(str: Str), I32, 
+    i: I32, 
+    count: I32, 
+    byte0: I32.U8, 
+    in_emoji_sequence: I32, 
+    prev_was_emoji: I32 do
+      
     if str[:size] === 0 do
       return(0)
     end
 
     i = 0
     count = 0
+    in_emoji_sequence = 0
+    prev_was_emoji = 0
 
     loop EachOctet do
-      if i === str[:size] do
+      if i >= str[:size] do
         return(count)
       end
 
       byte0 = Memory.load!(I32.U8, str[:ptr] + i)
 
+      # Check for emoji sequence or zero-width joiner (ZWJ)
+      # ZWJ is E2 80 8D in UTF-8
+      if i + 2 < str[:size] &&& 
+         byte0 === 0xE2 &&&
+         Memory.load!(I32.U8, str[:ptr] + i + 1) === 0x80 &&&
+         Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x8D do
+        # Found a ZWJ - continue emoji sequence
+        in_emoji_sequence = 1
+        i = i + 3
+        EachOctet.continue()
+      end
+
+      # Check for variation selectors (VS15, VS16) used with emoji
+      # VS15 is EF B8 8E, VS16 is EF B8 8F in UTF-8
+      if i + 2 < str[:size] &&&
+         byte0 === 0xEF &&&
+         Memory.load!(I32.U8, str[:ptr] + i + 1) === 0xB8 &&&
+         (Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x8E ||| 
+          Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x8F) do
+        # Found a variation selector - continue emoji sequence
+        in_emoji_sequence = 1
+        i = i + 3
+        EachOctet.continue()
+      end
+
+      # Check for emoji modifier (skin tone)
+      # These start with F0 9F 8F in UTF-8
+      if i + 3 < str[:size] &&&
+         byte0 === 0xF0 &&&
+         Memory.load!(I32.U8, str[:ptr] + i + 1) === 0x9F &&&
+         Memory.load!(I32.U8, str[:ptr] + i + 2) === 0x8F do
+        # Found a skin tone modifier - continue emoji sequence
+        in_emoji_sequence = 1
+        i = i + 4
+        EachOctet.continue()
+      end
+
+      # Basic UTF-8 decoding
       cond result: nil do
-        # 0xxxxxxx
+        # 0xxxxxxx (ASCII)
         I32.band(byte0, 0x80) === 0x00 ->
           i = i + 1
-          count = count + 1
+          if in_emoji_sequence === 0 do
+            count = count + 1
+          end
+          in_emoji_sequence = 0
+          prev_was_emoji = 0
 
-        # 110xxxxx 10xxxxxx
+        # 110xxxxx 10xxxxxx (2-byte UTF-8)
         I32.band(byte0, 0xE0) === 0xC0 ->
           i = i + 2
-          count = count + 1
+          if in_emoji_sequence === 0 do
+            count = count + 1
+          end
+          in_emoji_sequence = 0
+          prev_was_emoji = 0
 
-        # 1110xxxx 10xxxxxx 10xxxxxx
+        # 1110xxxx 10xxxxxx 10xxxxxx (3-byte UTF-8)
         I32.band(byte0, 0xF0) === 0xE0 ->
           i = i + 3
-          count = count + 1
+          if in_emoji_sequence === 0 do
+            count = count + 1
+          end
+          in_emoji_sequence = 0
+          prev_was_emoji = 0
 
-        # 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+        # 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx (4-byte UTF-8, including emoji)
         I32.band(byte0, 0xF8) === 0xF0 ->
           i = i + 4
-          count = count + 1
+          
+          # Most emoji start with F0 9F in UTF-8
+          if byte0 === 0xF0 &&& 
+             i - 3 < str[:size] &&&
+             Memory.load!(I32.U8, str[:ptr] + i - 3) === 0xF0 &&&
+             Memory.load!(I32.U8, str[:ptr] + i - 2) === 0x9F do
+            
+            if prev_was_emoji === 0 &&& in_emoji_sequence === 0 do
+              count = count + 1
+            end
+            
+            prev_was_emoji = 1
+            in_emoji_sequence = 1
+          else
+            if in_emoji_sequence === 0 do
+              count = count + 1
+            end
+            in_emoji_sequence = 0
+            prev_was_emoji = 0
+          end
       end
 
       EachOctet.continue()

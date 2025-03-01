@@ -94,9 +94,22 @@ defmodule UTF8Test do
     assert 1 = String.length(latin_e_with_acute)
     assert {:ok, [1]} = write_and_call.(latin_e_with_acute, :length)
 
-    # face_palm_emoji = "🤦🏼‍♂️"
-    # assert 17 = byte_size(face_palm_emoji)
-    # assert 1 = String.length(face_palm_emoji)
-    # assert {:ok, [5]} = write_and_call.(face_palm_emoji, :length)
+    # Testing an emoji
+    simple_emoji = "😀"
+    assert 4 = byte_size(simple_emoji)
+    assert 1 = String.length(simple_emoji)
+    assert {:ok, [1]} = write_and_call.(simple_emoji, :length)
+    
+    # Testing emoji with skin tone modifier
+    emoji_with_modifier = "👍🏼"
+    assert 8 = byte_size(emoji_with_modifier)
+    assert 1 = String.length(emoji_with_modifier)
+    assert {:ok, [1]} = write_and_call.(emoji_with_modifier, :length)
+    
+    # Testing complex emoji sequence with ZWJ
+    face_palm_emoji = "🤦🏼‍♂️"
+    assert 17 = byte_size(face_palm_emoji)
+    assert 1 = String.length(face_palm_emoji)
+    assert {:ok, [1]} = write_and_call.(face_palm_emoji, :length)
   end
 end
