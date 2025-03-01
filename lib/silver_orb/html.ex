@@ -36,61 +36,6 @@ defmodule SilverOrb.HTML do
   #   end
   # end
 
-  defmacrop cond2(result_type, do: block) do
-    line = __CALLER__.line
-    block_name = "cond_#{line}"
-
-    instructions =
-      for {:->, _, [[condition], result]} <- block do
-        quote bind_quoted: [
-                condition: condition,
-                result:
-                  case result do
-                    {:__block__, _meta, items} ->
-                      quote do: Orb.InstructionSequence.new(unquote(items))
-
-                    single ->
-                      single
-                  end,
-                block_name: block_name
-              ] do
-          case condition do
-            true ->
-              result
-
-            condition ->
-              Orb.IfElse.new(
-                condition,
-                Orb.InstructionSequence.new([
-                  result,
-                  Orb.Control.break(block_name)
-                ])
-              )
-              # TODO: need to add branch_type to Orb?
-              |> Map.put(:push_type, nil)
-
-              # Orb.InstructionSequence.new([
-              #   unquote(result),
-              #   Orb.Control.break(unquote(block_name), if: condition),
-              #   Orb.Stack.drop(%Orb.Nop{push_type: Orb.I32})
-              # ])
-          end
-        end
-      end
-
-    quote do
-      with do
-        require Orb.Control
-
-        instructions = unquote(instructions)
-
-        Orb.Control.block unquote(block_name), unquote(result_type) do
-          Orb.InstructionSequence.new(instructions)
-        end
-      end
-    end
-  end
-
   defw escape_char_count(char: I32.U8), I32 do
     # return 4 when char === ?<
 
@@ -99,7 +44,7 @@ defmodule SilverOrb.HTML do
     #   when char === ?< -> 4
     # end
 
-    cond2 I32 do
+    cond result: I32 do
       char === ?< -> i32(4)
       char === ?> -> i32(4)
       char === ?& -> i32(5)
@@ -120,7 +65,7 @@ defmodule SilverOrb.HTML do
 
   # TODO: add loop with n times
   defw escape_char(char: I32.U8, write_ptr: I32.U8.UnsafePointer), I32 do
-    cond2 I32 do
+    cond result: I32 do
       char === ?< ->
         # write_ptr[write_utf8!: "&amp;"]
         # write_ptr[:utf8!] = "&amp;"
@@ -191,7 +136,7 @@ defmodule SilverOrb.HTML do
     # Both can declare locals to be declared.
     Orb.snippet do
       Control.block :html_escape, I32 do
-        cond2 I32 do
+        cond result: I32 do
           char === ?< ->
             # write_ptr[write_utf8!: "&lt;"]
             # write_ptr[:utf8!] = "&lt;"
@@ -276,24 +221,24 @@ defmodule SilverOrb.HTML do
   #        output_so_far: I32 do
   #     loop char <- Memory.slice(input_ptr, input_len).bytes do
   #       # len = escape_char(:byte_size, char)
-  # 
+  #
   #       # This gets inlined
   #       len = EscapeCharMapper.output_byte_size(char)
-  # 
+  #
   #       if output_so_far + len > output_max_len do
   #         return(output_so_far)
   #       end
-  # 
+  #
   #       # return output_so_far when output_so_far + len > output_max_len
-  # 
+  #
   #       # Mapper.write!(escape_char(:mapper), char, output_ptr)
   #       # This gets inlined, with manual outputting char-by-char for strings.
   #       # e.g. & then a then m then p then ;
   #       EscapeCharMapper.output!(char, output_ptr)
-  # 
+  #
   #       output_so_far = output_so_far + len
   #     end
-  # 
+  #
   #     output_so_far
   #   end
 
