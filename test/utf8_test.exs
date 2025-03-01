@@ -1,7 +1,9 @@
 defmodule UTF8Test do
-  use ExUnit.Case, async: true
+  use WasmexCase, async: true
 
-  alias OrbWasmtime.Instance
+  # No need for aliases, using WasmexCase
+
+  @moduletag wat: Orb.to_wat(SilverOrb.UTF8)
 
   @good_sequences [
     "a",
@@ -54,17 +56,24 @@ defmodule UTF8Test do
     "\xf6"
   ]
 
-  test "valid?/2" do
-    wat = Orb.to_wat(SilverOrb.UTF8)
-    i = Instance.run(wat)
+  setup context do
+    write_and_call = fn s, f ->
+      input_ptr = Orb.Memory.page_byte_size()
+      context.write_binary.(input_ptr, s)
+      context.call_function.(f, [input_ptr, byte_size(s)])
+    end
 
+    %{write_and_call: write_and_call}
+  end
+
+  test "valid?/2", %{write_and_call: write_and_call} do
     Enum.each(@good_sequences, fn good_sequence ->
-      assert 1 = wasm_valid?(i, good_sequence)
+      assert {:ok, [1]} = write_and_call.(good_sequence, :valid?)
       assert String.valid?(good_sequence)
     end)
 
     Enum.each(@bad_sequences, fn bad_sequence ->
-      assert 0 = wasm_valid?(i, bad_sequence)
+      assert {:ok, [0]} = write_and_call.(bad_sequence, :valid?)
       refute String.valid?(bad_sequence)
     end)
 
@@ -76,11 +85,10 @@ defmodule UTF8Test do
     # assert 0 = wasm_valid?(i, "\xc3\xb1")
   end
 
-  defp wasm_valid?(i, s) when is_binary(s) do
-    input_ptr = Orb.Memory.page_byte_size()
-    bytes = s |> :binary.bin_to_list()
+  # test "length/1", %{call_function: call_function, write_binary: write_binary} do
+  #   wat = Orb.to_wat(SilverOrb.UTF8)
+  #   i = Instance.run(wat)
 
-    Instance.write_memory(i, input_ptr, bytes)
-    Instance.call(i, :valid?, input_ptr, length(bytes))
-  end
+  #   assert wasm_length(i, "abc") == 3
+  # end
 end

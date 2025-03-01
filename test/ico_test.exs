@@ -35,13 +35,4 @@ defmodule ICOTest do
     bytes = read_binary.(write_ptr, byte_count)
     File.write!(path, bytes)
   end
-
-  defp u32_to_s32(int) do
-    if int <= 0x7FFF_FFFF do
-      int
-    else
-      int - 0x1_0000_0000
-    end
-    # Bitwise.band(int, 0x7FFF_FFFF) - if int > 0x7FFF_FFFF, do: 1, else: 0
-  end
 end

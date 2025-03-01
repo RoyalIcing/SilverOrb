@@ -1,5 +1,5 @@
 defmodule SortTest do
-  use ExUnit.Case, async: true
+  use WasmexCase, async: true
   @moduletag timeout: 1000
 
   defmodule SortIntegers do
@@ -45,30 +45,20 @@ defmodule SortTest do
     end
   end
 
-  test "bubble_sort OrbWasmtime" do
-    alias OrbWasmtime.Instance
-    wat = Orb.to_wat(SortIntegers)
-    instance = Instance.run(wat)
+  @moduletag wat: Orb.to_wat(SortIntegers)
 
-    assert 4 = Instance.call(instance, :read_item, 0)
-    Instance.call(instance, :bubble_sort)
-    assert 2 = Instance.call(instance, :read_item, 0)
-    assert 3 = Instance.call(instance, :read_item, 1)
-    assert 4 = Instance.call(instance, :read_item, 2)
-    assert 9 = Instance.call(instance, :read_item, 3)
-    assert 12 = Instance.call(instance, :read_item, 4)
-  end
+  test "bubble_sort", %{call_function: call_function} do
+    # Verify initial state
+    assert {:ok, [4]} = call_function.(:read_item, [0])
 
-  test "bubble_sort Wasmex" do
-    wat = Orb.to_wat(SortIntegers)
-    {:ok, pid} = Wasmex.start_link(%{bytes: wat})
+    # Run sort
+    {:ok, []} = call_function.(:bubble_sort, [])
 
-    assert {:ok, [4]} = Wasmex.call_function(pid, :read_item, [0])
-    Wasmex.call_function(pid, :bubble_sort, [])
-    assert {:ok, [2]} = Wasmex.call_function(pid, :read_item, [0])
-    assert {:ok, [3]} = Wasmex.call_function(pid, :read_item, [1])
-    assert {:ok, [4]} = Wasmex.call_function(pid, :read_item, [2])
-    assert {:ok, [9]} = Wasmex.call_function(pid, :read_item, [3])
-    assert {:ok, [12]} = Wasmex.call_function(pid, :read_item, [4])
+    # Verify sorted state
+    assert {:ok, [2]} = call_function.(:read_item, [0])
+    assert {:ok, [3]} = call_function.(:read_item, [1])
+    assert {:ok, [4]} = call_function.(:read_item, [2])
+    assert {:ok, [9]} = call_function.(:read_item, [3])
+    assert {:ok, [12]} = call_function.(:read_item, [4])
   end
 end

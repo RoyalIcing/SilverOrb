@@ -27,12 +27,12 @@ defmodule BloomTest do
       # :erlang.crc32(term)
       :erlang.phash2(term)
     end
-    
+
     defp insert_term(call, table, term) do
       hash = hash(term)
       call.insert.(table, hash)
     end
-    
+
     defp contains_term?(call, table, term) do
       hash = hash(term)
       1 === call.contains?.(table, hash)
@@ -44,12 +44,12 @@ defmodule BloomTest do
           table ->
             insert_term(call, table, string)
         end
-      
+
       assert contains_term?(call, table, "a")
       assert contains_term?(call, table, "b")
       assert contains_term?(call, table, "c")
       assert contains_term?(call, table, "d")
-      
+
       refute contains_term?(call, table, "hello!!")
       refute contains_term?(call, table, "z")
       refute contains_term?(call, table, "1234")

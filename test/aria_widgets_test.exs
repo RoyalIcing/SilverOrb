@@ -204,49 +204,22 @@ defmodule MenuButton do
 end
 
 defmodule AriaWidgetsTest do
-  use ExUnit.Case, async: true
-  alias OrbWasmtime.Instance
+  use WasmexCase, async: true
 
   defmacrop sigil_H({:<<>>, meta, [expr]}, []) do
     EEx.compile_string(expr, indentation: meta[:indentation] || 0)
   end
 
   describe "MenuButton" do
-    setup do
-      wat = Orb.to_wat(MenuButton)
-      # wasm = Orb.to_wasm(MenuButton)
-      # IO.puts(wat)
+    @describetag wat: Orb.to_wat(MenuButton)
 
-      path_wat = Path.join(__DIR__, "menu-button.wat")
-      path_wasm = Path.join(__DIR__, "menu-button.wasm")
-      File.write!(path_wat, wat)
-      System.cmd("wat2wasm", [path_wat], cd: __DIR__)
-      wasm = File.read!(path_wasm)
-
-      on_exit(fn ->
-        File.rm!(path_wat)
-        File.rm!(path_wasm)
-      end)
-
-      %{wat: wat, wasm: wasm}
+    defp read_string(call_function, read_binary, f) when is_atom(f) do
+      {:ok, [ptr, len]} = call_function.(f, [])
+      read_binary.(ptr, len)
     end
 
-    setup %{wat: wat, wasm: wasm} do
-      instance = Instance.run(wat)
-
-      {:ok, pid} = Wasmex.start_link(%{bytes: wasm})
-      pid = :todo
-
-      # {:ok, [ptr, len]} = Wasmex.call_function(pid, :to_string, [])
-      # {:ok, memory} = Wasmex.memory(pid)
-      # {:ok, store} = Wasmex.store(pid)
-      # html = Wasmex.Memory.read_binary(store, memory, ptr, len)
-
-      %{instance: instance, pid: pid}
-    end
-
-    test "initial html", %{instance: instance} do
-      html = read_string(instance, :text_html)
+    test "initial html", %{call_function: call_function, read_binary: read_binary} do
+      html = read_string(call_function, read_binary, :text_html)
 
       assert html === ~H"""
              <lipid-menu-button>
@@ -259,25 +232,29 @@ defmodule AriaWidgetsTest do
              </lipid-menu-button>
              """
 
-      assert read_string(instance, :focus_id) === ""
+      assert read_string(call_function, read_binary, :focus_id) === ""
     end
 
-    test "can read ids", %{instance: instance} do
-      assert read_string(instance, :button_id) === "menubutton:1"
-      assert read_string(instance, :menu_id) === "menu:1"
+    test "can read ids", %{call_function: call_function, read_binary: read_binary} do
+      assert read_string(call_function, read_binary, :button_id) === "menubutton:1"
+      assert read_string(call_function, read_binary, :menu_id) === "menu:1"
     end
 
-    test "when changing id suffix", %{instance: instance} do
-      Instance.set_global(instance, :id_suffix, 99)
-      assert read_string(instance, :button_id) === "menubutton:99"
-      assert read_string(instance, :menu_id) === "menu:99"
-      assert read_string(instance, :text_html) =~ ~S|id="menubutton:99"|
-      assert read_string(instance, :text_html) =~ ~S|id="menu:99"|
+    test "when changing id suffix", %{
+      call_function: call_function,
+      read_binary: read_binary,
+      set_global: set_global
+    } do
+      set_global.("id_suffix", 99)
+      assert read_string(call_function, read_binary, :button_id) === "menubutton:99"
+      assert read_string(call_function, read_binary, :menu_id) === "menu:99"
+      assert read_string(call_function, read_binary, :text_html) =~ ~S|id="menubutton:99"|
+      assert read_string(call_function, read_binary, :text_html) =~ ~S|id="menu:99"|
     end
 
-    test "when open", %{instance: instance} do
-      Instance.call(instance, :open)
-      html = read_string(instance, :text_html)
+    test "when open", %{call_function: call_function, read_binary: read_binary} do
+      {:ok, []} = call_function.(:open, [])
+      html = read_string(call_function, read_binary, :text_html)
 
       assert html === ~H"""
              <lipid-menu-button>
@@ -290,16 +267,16 @@ defmodule AriaWidgetsTest do
              </lipid-menu-button>
              """
 
-      assert read_string(instance, :focus_id) === "menu:1"
+      assert read_string(call_function, read_binary, :focus_id) === "menu:1"
     end
 
-    test "key events", %{instance: instance} do
-      Instance.call(instance, :toggle)
+    test "key events", %{call_function: call_function, read_binary: read_binary} do
+      {:ok, []} = call_function.(:toggle, [])
 
-      Instance.call(instance, :focus_next_item)
-      assert read_string(instance, :focus_id) === "menu:1"
+      {:ok, []} = call_function.(:focus_next_item, [])
+      assert read_string(call_function, read_binary, :focus_id) === "menu:1"
 
-      assert read_string(instance, :text_html) === ~H"""
+      assert read_string(call_function, read_binary, :text_html) === ~H"""
              <lipid-menu-button>
              <button type="button" id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1" data-action="toggle" data-keydown-arrow-down data-keydown-arrow-up="focus_previous_item">
              <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="menuitem:1.2" data-keydown-escape="close" data-keydown-arrow-down="focus_previous_item" data-keydown-arrow-down="focus_next_item">
@@ -311,11 +288,11 @@ defmodule AriaWidgetsTest do
              """
     end
 
-    test "button arrow up", %{instance: instance} do
-      Instance.call(instance, :focus_previous_item)
-      assert read_string(instance, :focus_id) === "menu:1"
+    test "button arrow up", %{call_function: call_function, read_binary: read_binary} do
+      {:ok, []} = call_function.(:focus_previous_item, [])
+      assert read_string(call_function, read_binary, :focus_id) === "menu:1"
 
-      assert read_string(instance, :text_html) === ~H"""
+      assert read_string(call_function, read_binary, :text_html) === ~H"""
              <lipid-menu-button>
              <button type="button" id="menubutton:1" aria-haspopup="true" aria-expanded="true" aria-controls="menu:1" data-action="toggle" data-keydown-arrow-down data-keydown-arrow-up="focus_previous_item">
              <ul role="menu" id="menu:1" tabindex="-1" aria-labelledby="menubutton:1" aria-activedescendant="menuitem:1.3" data-keydown-escape="close" data-keydown-arrow-down="focus_previous_item" data-keydown-arrow-down="focus_next_item">
@@ -327,31 +304,48 @@ defmodule AriaWidgetsTest do
              """
     end
 
-    test "focus next/previous wraps", %{instance: instance} do
-      Instance.call(instance, :toggle)
-      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.1"|
-      Instance.call(instance, :focus_next_item)
-      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.2"|
-      Instance.call(instance, :focus_next_item)
-      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.3"|
-      Instance.call(instance, :focus_next_item)
-      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.1"|
-      Instance.call(instance, :focus_previous_item)
-      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.3"|
-      Instance.call(instance, :focus_previous_item)
-      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.2"|
+    test "focus next/previous wraps", %{call_function: call_function, read_binary: read_binary} do
+      {:ok, []} = call_function.(:toggle, [])
+
+      assert read_string(call_function, read_binary, :text_html) =~
+               ~S|aria-activedescendant="menuitem:1.1"|
+
+      {:ok, []} = call_function.(:focus_next_item, [])
+
+      assert read_string(call_function, read_binary, :text_html) =~
+               ~S|aria-activedescendant="menuitem:1.2"|
+
+      {:ok, []} = call_function.(:focus_next_item, [])
+
+      assert read_string(call_function, read_binary, :text_html) =~
+               ~S|aria-activedescendant="menuitem:1.3"|
+
+      {:ok, []} = call_function.(:focus_next_item, [])
+
+      assert read_string(call_function, read_binary, :text_html) =~
+               ~S|aria-activedescendant="menuitem:1.1"|
+
+      {:ok, []} = call_function.(:focus_previous_item, [])
+
+      assert read_string(call_function, read_binary, :text_html) =~
+               ~S|aria-activedescendant="menuitem:1.3"|
+
+      {:ok, []} = call_function.(:focus_previous_item, [])
+
+      assert read_string(call_function, read_binary, :text_html) =~
+               ~S|aria-activedescendant="menuitem:1.2"|
     end
 
-    test "menuitem pointerover", %{instance: instance} do
-      Instance.call(instance, :focus_item, 2)
-      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.2"|
-      Instance.call(instance, :focus_item, -1)
-      assert read_string(instance, :text_html) =~ ~S|aria-activedescendant="menuitem:1.3"|
-    end
-  end
+    test "menuitem pointerover", %{call_function: call_function, read_binary: read_binary} do
+      {:ok, []} = call_function.(:focus_item, [2])
 
-  defp read_string(instance, f) when is_atom(f) do
-    {ptr, len} = Instance.call(instance, f)
-    Instance.read_memory(instance, ptr, len)
+      assert read_string(call_function, read_binary, :text_html) =~
+               ~S|aria-activedescendant="menuitem:1.2"|
+
+      {:ok, []} = call_function.(:focus_item, [-1])
+
+      assert read_string(call_function, read_binary, :text_html) =~
+               ~S|aria-activedescendant="menuitem:1.3"|
+    end
   end
 end
