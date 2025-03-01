@@ -85,10 +85,18 @@ defmodule UTF8Test do
     # assert 0 = wasm_valid?(i, "\xc3\xb1")
   end
 
-  # test "length/1", %{call_function: call_function, write_binary: write_binary} do
-  #   wat = Orb.to_wat(SilverOrb.UTF8)
-  #   i = Instance.run(wat)
+  test "length/1", %{write_and_call: write_and_call} do
+    assert {:ok, [3]} = write_and_call.("abc", :length)
+    assert {:ok, [5]} = write_and_call.("եոգլի", :length)
 
-  #   assert wasm_length(i, "abc") == 3
-  # end
+    latin_e_with_acute = "é"
+    assert 2 = byte_size(latin_e_with_acute)
+    assert 1 = String.length(latin_e_with_acute)
+    assert {:ok, [1]} = write_and_call.(latin_e_with_acute, :length)
+
+    # face_palm_emoji = "🤦🏼‍♂️"
+    # assert 17 = byte_size(face_palm_emoji)
+    # assert 1 = String.length(face_palm_emoji)
+    # assert {:ok, [5]} = write_and_call.(face_palm_emoji, :length)
+  end
 end

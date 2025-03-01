@@ -113,4 +113,48 @@ defmodule SilverOrb.UTF8 do
 
     1
   end
+
+  @doc "Returns the number of Unicode graphemes in a UTF-8 string."
+  defw length(str: Str), I32, i: I32, count: I32, byte0: I32.U8 do
+    if str[:size] === 0 do
+      return(0)
+    end
+
+    i = 0
+    count = 0
+
+    loop EachOctet do
+      if i === str[:size] do
+        return(count)
+      end
+
+      byte0 = Memory.load!(I32.U8, str[:ptr] + i)
+
+      cond result: nil do
+        # 0xxxxxxx
+        I32.band(byte0, 0x80) === 0x00 ->
+          i = i + 1
+          count = count + 1
+
+        # 110xxxxx 10xxxxxx
+        I32.band(byte0, 0xE0) === 0xC0 ->
+          i = i + 2
+          count = count + 1
+
+        # 1110xxxx 10xxxxxx 10xxxxxx
+        I32.band(byte0, 0xF0) === 0xE0 ->
+          i = i + 3
+          count = count + 1
+
+        # 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+        I32.band(byte0, 0xF8) === 0xF0 ->
+          i = i + 4
+          count = count + 1
+      end
+
+      EachOctet.continue()
+    end
+
+    count
+  end
 end
