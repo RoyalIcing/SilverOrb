@@ -3,6 +3,68 @@ defmodule SilverOrb.UTF8 do
 
   # Used for testing
   Memory.pages(2)
+  
+  @doc """
+  Counts the number of code points in a UTF-8 string.
+  
+  This differs from length/1 which counts grapheme clusters (visible characters).
+  Code points are the individual Unicode scalar values that make up the string.
+  
+  For example:
+  - "a" has 1 code point (U+0061)
+  - "é" can be 1 code point (U+00E9) or 2 code points (U+0065 + U+0301)
+  - "👨‍👩‍👧‍👦" has 7 code points (4 people + 3 ZWJs)
+  """
+  defw code_point_count(str: Str), I32, i: I32, count: I32, byte: I32.U8 do
+    if str[:size] === 0 do
+      return(0)
+    end
+
+    i = 0
+    count = 0
+
+    loop EachCodePoint do
+      if i >= str[:size] do
+        return(count)
+      end
+
+      byte = Memory.load!(I32.U8, str[:ptr] + i)
+
+      # Determine the size of the current code point
+      # Only count bytes that start a code point (not continuation bytes)
+      if I32.band(byte, 0x80) === 0 do
+        # 0xxxxxxx - ASCII character (1 byte)
+        count = count + 1
+        i = i + 1
+      else
+        if I32.band(byte, 0xE0) === 0xC0 do
+          # 110xxxxx 10xxxxxx - 2-byte sequence
+          count = count + 1
+          i = i + 2
+        else
+          if I32.band(byte, 0xF0) === 0xE0 do
+            # 1110xxxx 10xxxxxx 10xxxxxx - 3-byte sequence
+            count = count + 1
+            i = i + 3
+          else
+            if I32.band(byte, 0xF8) === 0xF0 do
+              # 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx - 4-byte sequence
+              count = count + 1
+              i = i + 4
+            else
+              # Invalid UTF-8 starter byte, treat as 1 byte and move on
+              count = count + 1
+              i = i + 1
+            end
+          end
+        end
+      end
+
+      EachCodePoint.continue()
+    end
+
+    count
+  end
 
   # TODO: double check against https://webassembly.github.io/spec/core/binary/values.html#binary-utf8
   # defw valid?(str_ptr: Str.Pointer, str_len: Str.Length), I32 do

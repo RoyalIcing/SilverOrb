@@ -146,4 +146,80 @@ defmodule UTF8Test do
     assert length_control("👩‍🚀", write_and_call) == 1
     assert length_control("", write_and_call) == 0
   end
+
+  def code_point_count_control(string, write_and_call) do
+    elixir_count = String.codepoints(string) |> length()
+    assert {:ok, [wasm_count]} = write_and_call.(string, :code_point_count)
+    assert {string, elixir_count} === {string, wasm_count}
+    wasm_count
+  end
+
+  test "code_point_count/1", %{write_and_call: write_and_call} do
+    # Simple ASCII string
+    assert {:ok, [3]} = write_and_call.("abc", :code_point_count)
+
+    # UTF-8 multi-byte characters
+    assert {:ok, [5]} = write_and_call.("եոգլի", :code_point_count)
+
+    # Latin e with acute accent (precomposed, single code point)
+    # U+00E9
+    latin_e_with_acute_precomposed = "é"
+    assert 2 = byte_size(latin_e_with_acute_precomposed)
+    assert 1 = code_point_count_control(latin_e_with_acute_precomposed, write_and_call)
+
+    # Latin e with acute accent (decomposed, two code points)
+    # U+0065 + U+0301
+    latin_e_with_acute_decomposed = "e\u0301"
+    assert 3 = byte_size(latin_e_with_acute_decomposed)
+    assert 2 = code_point_count_control(latin_e_with_acute_decomposed, write_and_call)
+
+    # Test word with combining marks
+    # 'A' with macron and grave accent + "stute"
+    combining_mark_example = "Ā̀stute"
+    assert 9 = byte_size(combining_mark_example)
+    assert 7 = code_point_count_control(combining_mark_example, write_and_call)
+
+    # Simple emoji (single code point)
+    simple_emoji = "😀"
+    assert 4 = byte_size(simple_emoji)
+    assert 1 = code_point_count_control(simple_emoji, write_and_call)
+
+    # Emoji with skin tone modifier (two code points)
+    emoji_with_modifier = "👍🏼"
+    assert 8 = byte_size(emoji_with_modifier)
+    assert 2 = code_point_count_control(emoji_with_modifier, write_and_call)
+
+    # Face palm emoji (multiple code points)
+    # Person facepalming + skin tone + ZWJ + male sign + VS
+    face_palm_emoji = "🤦🏼‍♂️"
+    assert 17 = byte_size(face_palm_emoji)
+    assert 5 = code_point_count_control(face_palm_emoji, write_and_call)
+
+    # Flag emoji (two code points for regional indicators)
+    # US flag
+    flag_emoji = "🇺🇸"
+    assert 8 = byte_size(flag_emoji)
+    assert 2 = code_point_count_control(flag_emoji, write_and_call)
+
+    # Family emoji (multiple code points with ZWJs)
+    # Man + ZWJ + Woman + ZWJ + Girl + ZWJ + Boy
+    family_emoji = "👨‍👩‍👧‍👦"
+    assert 25 = byte_size(family_emoji)
+    assert 7 = code_point_count_control(family_emoji, write_and_call)
+
+    # Doctor emoji (profession emoji with ZWJ)
+    # Man + ZWJ + Medical Symbol + VS16
+    doctor_emoji = "👨‍⚕️"
+    assert 13 = byte_size(doctor_emoji)
+    assert 4 = code_point_count_control(doctor_emoji, write_and_call)
+
+    # Astronaut emoji (profession emoji with ZWJ)
+    # Woman + ZWJ + Rocket
+    astronaut_emoji = "👩‍🚀"
+    assert 11 = byte_size(astronaut_emoji)
+    assert 3 = code_point_count_control(astronaut_emoji, write_and_call)
+
+    # Empty string
+    assert {:ok, [0]} = write_and_call.("", :code_point_count)
+  end
 end
