@@ -31,7 +31,7 @@ defmodule SilverOrb.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:orb, "~> 0.1.1"},
+      {:orb, "~> 0.2.0"},
       # {:orb, path: "../orb", override: true},
       # {:orb_wasmtime, "~> 0.1.17", only: :test},
       {:wasmex, "~> 0.9.2", only: :test},
