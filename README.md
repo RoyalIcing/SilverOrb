@@ -8,6 +8,7 @@ SilverOrb provides these batteries so common tasks are easier. They are:
 
 - [`StringBuilder`](https://hexdocs.pm/silver_orb/SilverOrb.StringBuilder.html) for assembling strings from dynamic parts.
 - `IntFormatter` for converting integers to strings.
+- `ISO8601` for parsing dates and times.
 - `Arena` allocator for memory management.
 - `ASCII` (coming soon) for operating on ASCII strings.
 - `UTF8` (coming soon) for operating on UTF-8 strings.
