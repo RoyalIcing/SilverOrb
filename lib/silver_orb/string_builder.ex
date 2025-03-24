@@ -97,7 +97,7 @@ defmodule SilverOrb.StringBuilder do
 
       Orb.include(unquote(__MODULE__))
 
-      require alias unquote(__MODULE__)
+      alias require unquote(__MODULE__)
       import unquote(__MODULE__)
 
       # global do

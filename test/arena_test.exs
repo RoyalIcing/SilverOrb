@@ -3,7 +3,7 @@ defmodule SilverOrb.ArenaTest do
 
   defmodule A do
     use Orb
-    require alias SilverOrb.Arena
+    alias require SilverOrb.Arena
 
     Arena.def(First, pages: 2)
     Arena.def(Second, pages: 3)
@@ -167,7 +167,7 @@ defmodule SilverOrb.ArenaTest do
 
   defmodule UnsafePointerTypeModule do
     use Orb
-    require alias SilverOrb.Arena
+    alias require SilverOrb.Arena
 
     Arena.def(Heap, pages: 2)
 
@@ -207,7 +207,7 @@ defmodule SilverOrb.ArenaTest do
   test "child String type maps to i64" do
     defmodule StringType do
       use Orb
-      require alias SilverOrb.Arena
+      alias require SilverOrb.Arena
 
       Arena.def(Heap, pages: 2)
 
@@ -223,7 +223,7 @@ defmodule SilverOrb.ArenaTest do
   test "Created arena module has a string_equal?/1 function" do
     defmodule EqualToString do
       use Orb
-      require alias SilverOrb.Arena
+      alias require SilverOrb.Arena
 
       Arena.def(Input, pages: 1)
 

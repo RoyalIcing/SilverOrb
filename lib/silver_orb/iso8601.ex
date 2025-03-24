@@ -151,7 +151,7 @@ defmodule SilverOrb.ISO8601 do
 
       if ptr[at!: 0] === ?. do
         ptr = ptr + 1
-        
+
         # loop 1..6 do
         # loop _ <- 1..6 do
         inline for _ <- 1..6 do

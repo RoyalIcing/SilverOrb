@@ -208,18 +208,18 @@ defmodule StringBuilderTest do
 
     test "can jump to 3rd step", %{wat: _wat, wasm: _wasm} do
       wat = Orb.to_wat(MultiStepForm)
-      
+
       {:ok, pid} = Wasmex.start_link(%{bytes: wat})
       {:ok, memory} = Wasmex.memory(pid)
       {:ok, store} = Wasmex.store(pid)
-      
+
       # Jump to step 3
       {:ok, []} = Wasmex.call_function(pid, :jump_to_step, [3])
-      
+
       # Get HTML
       {:ok, [ptr, len]} = Wasmex.call_function(pid, :to_string, [])
       html = Wasmex.Memory.read_binary(store, memory, ptr, len)
-      
+
       assert html ==
                ~S"""
                <h1>Step by step ✨</h1>
@@ -288,7 +288,7 @@ defmodule StringBuilderTest do
       {:ok, pid} = Wasmex.start_link(%{bytes: wat})
       {:ok, memory} = Wasmex.memory(pid)
       {:ok, store} = Wasmex.store(pid)
-      
+
       get_html = fn ->
         {:ok, [ptr, len]} = Wasmex.call_function(pid, :text_html, [])
         Wasmex.Memory.read_binary(store, memory, ptr, len)
@@ -338,21 +338,20 @@ defmodule StringBuilderTest do
     end
 
     test "name and value" do
-      
       # Setup
       wat = SetCookie.to_wat()
       {:ok, pid} = Wasmex.start_link(%{bytes: wat})
       {:ok, memory} = Wasmex.memory(pid)
       {:ok, store} = Wasmex.store(pid)
-      
+
       # Allocate memory for strings
       {:ok, [name_ptr]} = Wasmex.call_function(pid, :alloc, [4])
-      {:ok, [value_ptr]} = Wasmex.call_function(pid, :alloc, [6]) 
-      
+      {:ok, [value_ptr]} = Wasmex.call_function(pid, :alloc, [6])
+
       # Write strings to memory
       Wasmex.Memory.write_binary(store, memory, name_ptr, "foo" <> <<0>>)
       Wasmex.Memory.write_binary(store, memory, value_ptr, "value" <> <<0>>)
-      
+
       # Set values
       {:ok, []} = Wasmex.call_function(pid, :set_cookie_name, [name_ptr])
       {:ok, []} = Wasmex.call_function(pid, :set_cookie_value, [value_ptr])
@@ -362,124 +361,120 @@ defmodule StringBuilderTest do
     end
 
     test "domain" do
-      
       # Setup
       wat = SetCookie.to_wat()
       {:ok, pid} = Wasmex.start_link(%{bytes: wat})
       {:ok, memory} = Wasmex.memory(pid)
       {:ok, store} = Wasmex.store(pid)
-      
+
       # Allocate memory and write strings
       {:ok, [name_ptr]} = Wasmex.call_function(pid, :alloc, [4])
       {:ok, [value_ptr]} = Wasmex.call_function(pid, :alloc, [6])
       {:ok, [domain_ptr]} = Wasmex.call_function(pid, :alloc, [16])
-      
+
       Wasmex.Memory.write_binary(store, memory, name_ptr, "foo" <> <<0>>)
       Wasmex.Memory.write_binary(store, memory, value_ptr, "value" <> <<0>>)
       Wasmex.Memory.write_binary(store, memory, domain_ptr, "foo.example.com" <> <<0>>)
-      
+
       # Set values
       {:ok, []} = Wasmex.call_function(pid, :set_cookie_name, [name_ptr])
       {:ok, []} = Wasmex.call_function(pid, :set_cookie_value, [value_ptr])
       {:ok, []} = Wasmex.call_function(pid, :set_domain, [domain_ptr])
-      
-      assert call_reading_string(pid, store, memory, :to_string) == "foo=value; Domain=foo.example.com"
+
+      assert call_reading_string(pid, store, memory, :to_string) ==
+               "foo=value; Domain=foo.example.com"
     end
 
     test "HttpOnly" do
-      
       # Setup
       wat = SetCookie.to_wat()
       {:ok, pid} = Wasmex.start_link(%{bytes: wat})
       {:ok, memory} = Wasmex.memory(pid)
       {:ok, store} = Wasmex.store(pid)
-      
+
       # Allocate memory and write strings
       {:ok, [name_ptr]} = Wasmex.call_function(pid, :alloc, [4])
       {:ok, [value_ptr]} = Wasmex.call_function(pid, :alloc, [6])
-      
+
       Wasmex.Memory.write_binary(store, memory, name_ptr, "foo" <> <<0>>)
       Wasmex.Memory.write_binary(store, memory, value_ptr, "value" <> <<0>>)
-      
+
       # Set values
       {:ok, []} = Wasmex.call_function(pid, :set_cookie_name, [name_ptr])
       {:ok, []} = Wasmex.call_function(pid, :set_cookie_value, [value_ptr])
       {:ok, []} = Wasmex.call_function(pid, :set_http_only, [])
-      
+
       assert call_reading_string(pid, store, memory, :to_string) == "foo=value; HttpOnly"
     end
 
     test "HttpOnly Secure" do
-      
       # Setup
       wat = SetCookie.to_wat()
       {:ok, pid} = Wasmex.start_link(%{bytes: wat})
       {:ok, memory} = Wasmex.memory(pid)
       {:ok, store} = Wasmex.store(pid)
-      
+
       # Allocate memory and write strings
       {:ok, [name_ptr]} = Wasmex.call_function(pid, :alloc, [4])
       {:ok, [value_ptr]} = Wasmex.call_function(pid, :alloc, [6])
-      
+
       Wasmex.Memory.write_binary(store, memory, name_ptr, "foo" <> <<0>>)
       Wasmex.Memory.write_binary(store, memory, value_ptr, "value" <> <<0>>)
-      
+
       # Set values
       {:ok, []} = Wasmex.call_function(pid, :set_cookie_name, [name_ptr])
       {:ok, []} = Wasmex.call_function(pid, :set_cookie_value, [value_ptr])
       {:ok, []} = Wasmex.call_function(pid, :set_http_only, [])
       {:ok, []} = Wasmex.call_function(pid, :set_secure, [])
-      
+
       assert call_reading_string(pid, store, memory, :to_string) == "foo=value; Secure; HttpOnly"
     end
 
     test "Domain HttpOnly Secure" do
-      
       # Setup
       wat = SetCookie.to_wat()
       {:ok, pid} = Wasmex.start_link(%{bytes: wat})
       {:ok, memory} = Wasmex.memory(pid)
       {:ok, store} = Wasmex.store(pid)
-      
+
       # Allocate memory and write strings
       {:ok, [name_ptr]} = Wasmex.call_function(pid, :alloc, [4])
       {:ok, [value_ptr]} = Wasmex.call_function(pid, :alloc, [6])
       {:ok, [domain_ptr]} = Wasmex.call_function(pid, :alloc, [16])
-      
+
       Wasmex.Memory.write_binary(store, memory, name_ptr, "foo" <> <<0>>)
       Wasmex.Memory.write_binary(store, memory, value_ptr, "value" <> <<0>>)
       Wasmex.Memory.write_binary(store, memory, domain_ptr, "foo.example.com" <> <<0>>)
-      
+
       # Set values
       {:ok, []} = Wasmex.call_function(pid, :set_cookie_name, [name_ptr])
       {:ok, []} = Wasmex.call_function(pid, :set_cookie_value, [value_ptr])
       {:ok, []} = Wasmex.call_function(pid, :set_domain, [domain_ptr])
       {:ok, []} = Wasmex.call_function(pid, :set_http_only, [])
       {:ok, []} = Wasmex.call_function(pid, :set_secure, [])
-      
+
       assert call_reading_string(pid, store, memory, :to_string) ==
                "foo=value; Domain=foo.example.com; Secure; HttpOnly"
     end
 
     test "Domain Path HttpOnly Secure" do
-      
       # Setup
       wat = SetCookie.to_wat()
       {:ok, pid} = Wasmex.start_link(%{bytes: wat})
       {:ok, memory} = Wasmex.memory(pid)
       {:ok, store} = Wasmex.store(pid)
-      
+
       # Allocate memory and write strings
       {:ok, [name_ptr]} = Wasmex.call_function(pid, :alloc, [4])
       {:ok, [value_ptr]} = Wasmex.call_function(pid, :alloc, [6])
       {:ok, [domain_ptr]} = Wasmex.call_function(pid, :alloc, [16])
       {:ok, [path_ptr]} = Wasmex.call_function(pid, :alloc, [2])
-      
+
       Wasmex.Memory.write_binary(store, memory, name_ptr, "foo" <> <<0>>)
       Wasmex.Memory.write_binary(store, memory, value_ptr, "value" <> <<0>>)
       Wasmex.Memory.write_binary(store, memory, domain_ptr, "foo.example.com" <> <<0>>)
       Wasmex.Memory.write_binary(store, memory, path_ptr, "/" <> <<0>>)
-      
+
       # Set values
       {:ok, []} = Wasmex.call_function(pid, :set_cookie_name, [name_ptr])
       {:ok, []} = Wasmex.call_function(pid, :set_cookie_value, [value_ptr])
@@ -487,7 +482,7 @@ defmodule StringBuilderTest do
       {:ok, []} = Wasmex.call_function(pid, :set_path, [path_ptr])
       {:ok, []} = Wasmex.call_function(pid, :set_http_only, [])
       {:ok, []} = Wasmex.call_function(pid, :set_secure, [])
-      
+
       assert call_reading_string(pid, store, memory, :to_string) ==
                "foo=value; Domain=foo.example.com; Path=/; Secure; HttpOnly"
     end

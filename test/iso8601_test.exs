@@ -100,10 +100,10 @@ defmodule ISO8601Test do
       assert write_and_parse.("23:50:07") == [23, 50, 7, 0]
       assert write_and_parse.("00:14:55") == [0, 14, 55, 0]
       assert write_and_parse.("00:00:00") == [0, 0, 0, 0]
-      
-      assert write_and_parse.("12:34:56.789123") == [12, 34, 56, 789123]
-      assert write_and_parse.("12:34:56.789") == [12, 34, 56, 789000]
-      assert write_and_parse.("12:34:56.7") == [12, 34, 56, 700000]
+
+      assert write_and_parse.("12:34:56.789123") == [12, 34, 56, 789_123]
+      assert write_and_parse.("12:34:56.789") == [12, 34, 56, 789_000]
+      assert write_and_parse.("12:34:56.7") == [12, 34, 56, 700_000]
       assert write_and_parse.("12:34:56.0") == [12, 34, 56, 0]
       # assert write_and_parse.("12:34:56.789123567") == [12, 34, 56, 789123]
 
