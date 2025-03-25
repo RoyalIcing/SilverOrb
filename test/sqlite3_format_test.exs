@@ -118,20 +118,19 @@ defmodule SQLite3FormatTest do
                payload_size
              ])
 
+    assert table_column_count == 3
+
     s = read_binary.(column_ptr, column_size)
+    dbg(s)
 
     dbg(cell_count)
     dbg(cell_offset)
     dbg(rowid)
     dbg(payload_ptr)
     dbg(payload_size)
-    dbg(s)
     dbg(header_bytes)
     dbg(column_ptr)
     dbg(column_size)
-    dbg(table_column_count)
-
-    assert table_column_count === 3
   end
 
   # From https://programmersstone.blog/posts/scrappy-parsing/
