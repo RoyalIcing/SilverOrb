@@ -179,9 +179,44 @@ defmodule SilverOrb.ISO8601 do
     # |> if do
     #   return(wrap_tuple({hours, minutes, seconds, microseconds}))
     # else
-    #   invalid_time()  
+    #   invalid_time()
     # end
 
     invalid_time()
+  end
+
+  defw format_date(year: I32, month: I32, day: I32, into_str: Str), Str, max_size: I32 do
+    max_size = into_str[:size]
+
+    into_str = {into_str[:ptr], 0}
+
+    Control.block Valid do
+      if year < 0 or year > 9999, do: Valid.break()
+      if month < 1 or month > 12, do: Valid.break()
+      if day < 1 or day > 31, do: Valid.break()
+
+      Memory.store!(I32.U8, into_str[:ptr], I32.div_u(year, 1000) + ?0)
+      Memory.store!(I32.U8, into_str[:ptr] + 1, I32.div_u(I32.rem_u(year, 1000), 100) + ?0)
+      Memory.store!(I32.U8, into_str[:ptr] + 2, I32.div_u(I32.rem_u(year, 100), 10) + ?0)
+      Memory.store!(I32.U8, into_str[:ptr] + 3, I32.rem_u(year, 10) + ?0)
+
+      Memory.store!(I32.U8, into_str[:ptr] + 4, ?-)
+
+      Memory.store!(I32.U8, into_str[:ptr] + 5, I32.div_u(month, 10) + ?0)
+      Memory.store!(I32.U8, into_str[:ptr] + 6, I32.rem_u(month, 10) + ?0)
+
+      Memory.store!(I32.U8, into_str[:ptr] + 7, ?-)
+
+      Memory.store!(I32.U8, into_str[:ptr] + 8, I32.div_u(day, 10) + ?0)
+      Memory.store!(I32.U8, into_str[:ptr] + 9, I32.rem_u(day, 10) + ?0)
+
+      into_str = {into_str[:ptr], 10}
+
+      # return(into_str)
+    end
+
+    # into_str[:size] = 0
+    {into_str[:ptr], into_str[:size]}
+    # into_str
   end
 end
