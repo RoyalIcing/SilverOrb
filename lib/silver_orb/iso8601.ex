@@ -185,9 +185,11 @@ defmodule SilverOrb.ISO8601 do
     invalid_time()
   end
 
+  @doc """
+  Format a date as a string in the ISO8901 format `YYYY-MM-DD`.
+  """
   defw format_date(year: I32, month: I32, day: I32, into_str: Str), Str, max_size: I32 do
     max_size = into_str[:size]
-
     into_str = {into_str[:ptr], 0}
 
     Control.block Valid do
@@ -218,5 +220,44 @@ defmodule SilverOrb.ISO8601 do
     # into_str[:size] = 0
     {into_str[:ptr], into_str[:size]}
     # into_str
+  end
+
+  defw format_time(hours: I32, minutes: I32, seconds: I32, microseconds: I32, into_str: Str), Str,
+    max_size: I32 do
+    max_size = into_str[:size]
+    into_str = {into_str[:ptr], 0}
+
+    Control.block Valid do
+      if hours < 0 or hours >= 24, do: Valid.break()
+      if minutes < 0 or minutes >= 60, do: Valid.break()
+      if seconds < 0 or seconds >= 60, do: Valid.break()
+      if microseconds < 0 or microseconds >= 1_000_000, do: Valid.break()
+
+      Memory.store!(I32.U8, into_str[:ptr], I32.div_u(hours, 10) + ?0)
+      Memory.store!(I32.U8, into_str[:ptr] + 1, I32.rem_u(hours, 10) + ?0)
+
+      Memory.store!(I32.U8, into_str[:ptr] + 2, ?:)
+
+      Memory.store!(I32.U8, into_str[:ptr] + 3, I32.div_u(minutes, 10) + ?0)
+      Memory.store!(I32.U8, into_str[:ptr] + 4, I32.rem_u(minutes, 10) + ?0)
+
+      Memory.store!(I32.U8, into_str[:ptr] + 5, ?:)
+
+      Memory.store!(I32.U8, into_str[:ptr] + 6, I32.div_u(seconds, 10) + ?0)
+      Memory.store!(I32.U8, into_str[:ptr] + 7, I32.rem_u(seconds, 10) + ?0)
+
+      # if microseconds > 0 do
+      #   Memory.store!(I32.U8, into_str[:ptr] + 8, ?.)
+
+      # inline for i <- 1..6 do
+      #   Memory.store!(I32.U8, into_str[:ptr] + 8 + i, I32.div_u(microseconds, 10 ** (6 - i)) + ?0)
+      #   microseconds = I32.rem_u(microseconds, 10 ** (6 - i))
+      # end
+      # end
+
+      into_str = {into_str[:ptr], if(microseconds > 0, [result: I32], do: 8 + 7, else: 8)}
+    end
+
+    {into_str[:ptr], into_str[:size]}
   end
 end

@@ -97,17 +97,46 @@ defmodule ISO8601Test do
     end
 
     test "valid dates format correctly", %{format_and_read: format_and_read} do
-      # assert format_and_read.(2030, 8, 19) == "2030-08-19"
+      assert format_and_read.(2030, 8, 19) == "2030-08-19"
       assert format_and_read.(2134, 8, 19) == "2134-08-19"
-      # assert write_and_parse.(2030, 12, 19) == "2030-12-19"
-      # assert write_and_parse.(2030, 12, 1) == "2030-12-01"
-      # assert write_and_parse.(1000, 12, 1) == "1000-12-01"
-      # assert write_and_parse.(0, 12, 1) == "0000-12-01"
+      assert format_and_read.(2030, 12, 19) == "2030-12-19"
+      assert format_and_read.(2030, 12, 1) == "2030-12-01"
+      assert format_and_read.(1000, 12, 1) == "1000-12-01"
+      assert format_and_read.(0, 12, 1) == "0000-12-01"
+      assert format_and_read.(2005, 5, 30) == "2005-05-30"
+      assert format_and_read.(2000, 2, 29) == "2000-02-29"
+      assert format_and_read.(2001, 2, 28) == "2001-02-28"
+      assert format_and_read.(1, 1, 1) == "0001-01-01"
+      assert format_and_read.(0, 1, 1) == "0000-01-01"
+    end
 
-      # assert write_and_parse.(2005, 5, 30) == "2005-05-30"
+    test "invalid dates return empty string", %{format_and_read: format_and_read} do
+      assert format_and_read.(2000, 0, 1) == ""
+      assert format_and_read.(2000, 1, 0) == ""
+      assert format_and_read.(10000, 1, 1) == ""
+    end
+  end
 
-      # assert write_and_parse.(2000, 2, 29) == "2000-02-29"
-      # assert write_and_parse.(2001, 2, 28) == "2001-02-28"
+  describe "format_time" do
+    setup %{read_binary: read_binary, call_function: call_function} do
+      format_and_read = fn hours, minutes, seconds, microseconds ->
+        assert {:ok, [ptr, size]} =
+                 call_function.(:format_time, [hours, minutes, seconds, microseconds, 0x100, 0x40])
+
+        read_binary.(ptr, size)
+      end
+
+      %{format_and_read: format_and_read}
+    end
+
+    test "valid times format correctly", %{format_and_read: format_and_read} do
+      assert format_and_read.(17, 38, 29, 0) == "17:38:29"
+      assert format_and_read.(0, 38, 29, 0) == "00:38:29"
+      assert format_and_read.(0, 0, 0, 0) == "00:00:00"
+    end
+
+    test "invalid times return empty string", %{format_and_read: format_and_read} do
+      assert format_and_read.(60, 0, 0, 0) == ""
     end
   end
 end
