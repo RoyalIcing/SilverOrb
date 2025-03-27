@@ -69,6 +69,23 @@ defmodule SilverOrb.UTF8 do
   # TODO: double check against https://webassembly.github.io/spec/core/binary/values.html#binary-utf8
   # defw valid?(str_ptr: Str.Pointer, str_len: Str.Length), I32 do
   # defw valid?(str: Str), I32,
+  @doc """
+  Valid UTF-8 is represented by this table (taken from https://forums.swift.org/t/pitch-safe-utf-8-processing-over-contiguous-bytes/72742):
+
+   ╔════════════════════╦════════╦════════╦════════╦════════╗
+   ║    Scalar value    ║ Byte 0 ║ Byte 1 ║ Byte 2 ║ Byte 3 ║
+   ╠════════════════════╬════════╬════════╬════════╬════════╣
+   ║ U+0000..U+007F     ║ 00..7F ║        ║        ║        ║
+   ║ U+0080..U+07FF     ║ C2..DF ║ 80..BF ║        ║        ║
+   ║ U+0800..U+0FFF     ║ E0     ║ A0..BF ║ 80..BF ║        ║
+   ║ U+1000..U+CFFF     ║ E1..EC ║ 80..BF ║ 80..BF ║        ║
+   ║ U+D000..U+D7FF     ║ ED     ║ 80..9F ║ 80..BF ║        ║
+   ║ U+E000..U+FFFF     ║ EE..EF ║ 80..BF ║ 80..BF ║        ║
+   ║ U+10000..U+3FFFF   ║ F0     ║ 90..BF ║ 80..BF ║ 80..BF ║
+   ║ U+40000..U+FFFFF   ║ F1..F3 ║ 80..BF ║ 80..BF ║ 80..BF ║
+   ║ U+100000..U+10FFFF ║ F4     ║ 80..8F ║ 80..BF ║ 80..BF ║
+   ╚════════════════════╩════════╩════════╩════════╩════════╝
+  """
   defw valid?(str_ptr: I32.UnsafePointer, str_len: I32), I32,
     i: I32,
     byte0: I32.U8,
