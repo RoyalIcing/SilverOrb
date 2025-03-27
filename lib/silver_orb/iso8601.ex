@@ -21,8 +21,35 @@ defmodule SilverOrb.ISO8601 do
     end
   end
 
-  defp parse_digit(mut_var, str_ptr, fail_instruction) do
-    Orb.snippet do
+  def parse_digit(mut_var, str_ptr, fail_instruction) do
+    import Orb.Numeric.DSL
+    import Orb.Global.DSL
+
+    import Kernel,
+      except: [
+        if: 2,
+        unless: 2,
+        @: 1,
+        +: 2,
+        -: 2,
+        *: 2,
+        /: 2,
+        <: 2,
+        >: 2,
+        <=: 2,
+        >=: 2,
+        ===: 2,
+        !==: 2,
+        not: 1,
+        or: 2
+      ]
+
+    import Orb.DSL
+    require Orb.Control, as: Control
+    # TODO: should this be omitted if :no_magic is passed?
+    import Orb.IfElse.DSL
+
+    Control.block ParseDigit do
       Memory.load!(I32.U8, str_ptr)
       mut_var.write
       if mut_var.read < ?0 or mut_var.read > ?9, do: fail_instruction
@@ -213,15 +240,15 @@ defmodule SilverOrb.ISO8601 do
       Memory.store!(I32.U8, into_str[:ptr] + 9, I32.rem_u(day, 10) + ?0)
 
       into_str = {into_str[:ptr], 10}
-
-      # return(into_str)
     end
 
-    # into_str[:size] = 0
+    # FIXME: allow just returning into_str
     {into_str[:ptr], into_str[:size]}
-    # into_str
   end
 
+  @doc """
+  Format a time as a string in the ISO8901 format `HH:MM:SS` or `HH:MM:SS.uuuuuu`.
+  """
   defw format_time(hours: I32, minutes: I32, seconds: I32, microseconds: I32, into_str: Str), Str,
     max_size: I32 do
     max_size = into_str[:size]
