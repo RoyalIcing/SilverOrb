@@ -246,14 +246,37 @@ defmodule SilverOrb.ISO8601 do
       Memory.store!(I32.U8, into_str[:ptr] + 6, I32.div_u(seconds, 10) + ?0)
       Memory.store!(I32.U8, into_str[:ptr] + 7, I32.rem_u(seconds, 10) + ?0)
 
-      # if microseconds > 0 do
-      #   Memory.store!(I32.U8, into_str[:ptr] + 8, ?.)
+      if microseconds > 0 do
+        Memory.store!(I32.U8, into_str[:ptr] + 8, ?.)
 
-      # inline for i <- 1..6 do
-      #   Memory.store!(I32.U8, into_str[:ptr] + 8 + i, I32.div_u(microseconds, 10 ** (6 - i)) + ?0)
-      #   microseconds = I32.rem_u(microseconds, 10 ** (6 - i))
-      # end
-      # end
+        Memory.store!(I32.U8, into_str[:ptr] + 9, I32.div_u(microseconds, 100_000) + ?0)
+
+        Memory.store!(
+          I32.U8,
+          into_str[:ptr] + 10,
+          I32.div_u(I32.rem_u(microseconds, 100_000), 10000) + ?0
+        )
+
+        Memory.store!(
+          I32.U8,
+          into_str[:ptr] + 11,
+          I32.div_u(I32.rem_u(microseconds, 10000), 1000) + ?0
+        )
+
+        Memory.store!(
+          I32.U8,
+          into_str[:ptr] + 12,
+          I32.div_u(I32.rem_u(microseconds, 1000), 100) + ?0
+        )
+
+        Memory.store!(
+          I32.U8,
+          into_str[:ptr] + 13,
+          I32.div_u(I32.rem_u(microseconds, 100), 10) + ?0
+        )
+
+        Memory.store!(I32.U8, into_str[:ptr] + 14, I32.rem_u(microseconds, 10) + ?0)
+      end
 
       into_str = {into_str[:ptr], if(microseconds > 0, [result: I32], do: 8 + 7, else: 8)}
     end

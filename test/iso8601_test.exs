@@ -133,6 +133,9 @@ defmodule ISO8601Test do
       assert format_and_read.(17, 38, 29, 0) == "17:38:29"
       assert format_and_read.(0, 38, 29, 0) == "00:38:29"
       assert format_and_read.(0, 0, 0, 0) == "00:00:00"
+      assert format_and_read.(17, 38, 29, 123_456) == "17:38:29.123456"
+      assert format_and_read.(17, 38, 29, 123_456) == "17:38:29.123456"
+      assert format_and_read.(17, 38, 29, 987_654) == "17:38:29.987654"
     end
 
     test "invalid times return empty string", %{format_and_read: format_and_read} do
