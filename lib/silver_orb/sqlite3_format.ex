@@ -215,6 +215,243 @@ defmodule SilverOrb.SQLite3Format do
     }
   end
 
+  defmodule TableSchemaColumns3Result do
+    def fields() do
+      [
+        table_column_count: I32,
+        col_1_str_ptr: I32.UnsafePointer,
+        col_1_str_size: I32,
+        col_1_flags: I32,
+        col_2_str_ptr: I32.UnsafePointer,
+        col_2_str_size: I32,
+        col_2_flags: I32,
+        col_3_str_ptr: I32.UnsafePointer,
+        col_3_str_size: I32,
+        col_3_flags: I32
+      ]
+    end
+
+    with @behaviour Orb.CustomType do
+      @impl Orb.CustomType
+      def wasm_type() do
+        fields()
+        |> Keyword.values()
+        |> List.to_tuple()
+      end
+    end
+  end
+
+  # defp state_table_name, do: 0
+  # defp state_column_name, do: 1
+  # defp state_between_columns, do: 2
+
+  defp column_affinity_none, do: 0b0000_0000
+  defp column_affinity_text, do: 0b0000_0001
+  defp column_affinity_numeric, do: 0b0000_0010
+  defp column_affinity_integer, do: 0b0000_0011
+  defp column_affinity_real, do: 0b0000_0100
+  defp column_not_null, do: 0b0000_1000
+  defp column_primary_key, do: 0b0001_0000
+
+  defw parse_table_schema_columns_3(ptr: I32.UnsafePointer, len: I32),
+       TableSchemaColumns3Result,
+       seek_ptr: I32,
+       seek_slice: Memory.Slice,
+       parse_state: I32,
+       parsing_column: I32,
+       table_column_count: I32,
+       col_1_str_ptr: I32.UnsafePointer,
+       col_1_str_size: I32,
+       col_1_flags: I32,
+       col_2_str_ptr: I32.UnsafePointer,
+       col_2_str_size: I32,
+       col_2_flags: I32,
+       col_3_str_ptr: I32.UnsafePointer,
+       col_3_str_size: I32,
+       col_3_flags: I32 do
+    seek_ptr = ptr
+
+    assert!(Memory.load!(I32, seek_ptr) === I32.from_4_byte_ascii("CREA"))
+    assert!(Memory.load!(I32, seek_ptr + 4) === I32.from_4_byte_ascii("TE T"))
+    assert!(Memory.load!(I32, seek_ptr + 8) === I32.from_4_byte_ascii("ABLE"))
+    assert!(Memory.load!(I32.U8, seek_ptr + 12) === 0x20)
+
+    seek_slice = Memory.Slice.from(seek_ptr + 13, len)
+
+    parse_state = const(:table_name)
+
+    loop char <- seek_slice do
+      cond result: nil do
+        parse_state === const(:table_name) ->
+          if char === 0x20 do
+            parse_state = const(:before_columns)
+          end
+
+        parse_state === const(:before_columns) or parse_state === const(:between_columns) ->
+          if not (char === ?( or char === ?\n or char === 0x20) do
+            if char === ?) do
+              parse_state = const(:after_columns)
+            else
+              parse_state = const(:column_name)
+
+              if parsing_column === 0 do
+                parsing_column = 1
+              end
+
+              if parsing_column === 1 do
+                col_1_str_ptr = Memory.Slice.get_byte_offset(seek_slice)
+              end
+
+              if parsing_column === 2 do
+                col_2_str_ptr = Memory.Slice.get_byte_offset(seek_slice)
+              end
+
+              if parsing_column === 3 do
+                col_3_str_ptr = Memory.Slice.get_byte_offset(seek_slice)
+              end
+            end
+          end
+
+        parse_state === const(:column_name) ->
+          if char === 0x20 do
+            if parsing_column === 1 do
+              col_1_str_size = Memory.Slice.get_byte_offset(seek_slice) - col_1_str_ptr
+            end
+
+            if parsing_column === 2 do
+              col_2_str_size = Memory.Slice.get_byte_offset(seek_slice) - col_2_str_ptr
+            end
+
+            if parsing_column === 3 do
+              col_3_str_size = Memory.Slice.get_byte_offset(seek_slice) - col_3_str_ptr
+            end
+
+            parse_state = const(:column_type)
+          end
+
+        parse_state === const(:column_type) ->
+          if char === ?) do
+            parse_state = const(:after_columns)
+          end
+
+          if char === ?, do
+            parse_state = const(:between_columns)
+          end
+
+          if parse_state === const(:column_type) do
+            if parsing_column === 1 do
+              {seek_slice, col_1_flags} = parse_column_type(seek_slice)
+              # col_1_flags = 1
+            end
+          else
+            parsing_column = parsing_column + 1
+            table_column_count = table_column_count + 1
+          end
+      end
+    end
+
+    # assert! Memory.Slice.read!(mut!(input), I32) === I32.from_4_byte_ascii("CREA")
+    # assert! Memory.Slice.read!(mut!(input), I32) === I32.from_4_byte_ascii("TE T")
+    # assert! Memory.Slice.read!(mut!(input), I32) === I32.from_4_byte_ascii("ABLE")
+
+    loop char <- seek_slice do
+      if char === ?, or char === ?) do
+        table_column_count = table_column_count + 1
+      end
+    end
+
+    [
+      table_column_count: table_column_count,
+      col_1_str_ptr: col_1_str_ptr,
+      col_1_str_size: col_1_str_size,
+      col_1_flags: col_1_flags,
+      col_2_str_ptr: col_2_str_ptr,
+      col_2_str_size: col_2_str_size,
+      col_2_flags: col_2_flags,
+      col_3_str_ptr: col_3_str_ptr,
+      col_3_str_size: col_3_str_size,
+      col_3_flags: col_3_flags
+    ]
+    |> Keyword.values()
+    |> List.to_tuple()
+  end
+
+  defwp parse_column_type(slice: Memory.Slice), {Memory.Slice, I32}, flags: I32 do
+    if Memory.Slice.get_byte_length(slice) >= 5 &&&
+         Memory.load!(I32, Memory.Slice.get_byte_offset(slice)) ===
+           I32.from_4_byte_ascii("TEXT") &&&
+         Memory.load!(I32.U8, Memory.Slice.get_byte_offset(slice) + 4) === 0x20 do
+      flags = column_affinity_text()
+
+      slice =
+        Memory.Slice.from(
+          Memory.Slice.get_byte_offset(slice) + 5,
+          Memory.Slice.get_byte_length(slice) - 5
+        )
+
+      {slice, flags} = parse_column_primary_key(slice, flags)
+      {slice, flags} = parse_column_not_null(slice, flags)
+    else
+      flags = 0
+    end
+
+    {slice, flags}
+  end
+
+  defwp parse_column_primary_key(slice: Memory.Slice, flags: I32), {Memory.Slice, I32} do
+    if Memory.Slice.get_byte_length(slice) >= 12 &&&
+         Memory.load!(I32, Memory.Slice.get_byte_offset(slice)) ===
+           I32.from_4_byte_ascii("PRIM") &&&
+         Memory.load!(I32, Memory.Slice.get_byte_offset(slice) + 4) ===
+           I32.from_4_byte_ascii("ARY ") &&&
+         Memory.load!(I32, Memory.Slice.get_byte_offset(slice) + 8) ===
+           I32.from_4_byte_ascii("KEY ") do
+      flags = flags ||| column_primary_key()
+
+      slice =
+        Memory.Slice.from(
+          Memory.Slice.get_byte_offset(slice) + 12,
+          Memory.Slice.get_byte_length(slice) - 12
+        )
+    end
+
+    {slice, flags}
+  end
+
+  defwp parse_column_not_null(slice: Memory.Slice, flags: I32), {Memory.Slice, I32} do
+    if Memory.Slice.get_byte_length(slice) >= 9 &&&
+         Memory.load!(I32, Memory.Slice.get_byte_offset(slice)) ===
+           I32.from_4_byte_ascii("NOT ") &&&
+         Memory.load!(I32, Memory.Slice.get_byte_offset(slice) + 4) ===
+           I32.from_4_byte_ascii("NULL") do
+      flags = flags ||| column_not_null()
+
+      slice =
+        Memory.Slice.from(
+          Memory.Slice.get_byte_offset(slice) + 8,
+          Memory.Slice.get_byte_length(slice) - 8
+        )
+    end
+
+    {slice, flags}
+  end
+
+  # defp do_slice_equals_string(slice, <<first_four::binary-size(4), rest::binary>>) do
+  #   Orb.snippet do
+  #     Memory.load!(I32, Memory.Slice.get_byte_offset(slice)) ===
+  #       I32.from_4_byte_ascii(const(first_four)) and
+  #       slice_equals_string(
+  #         Memory.Slice.from(Memory.Slice.get_byte_offset(slice) + 4, Memory.Slice.size(slice) - 4)
+  #         Memory.Slice.drop_first_byte(
+  #           Memory.Slice.drop_first_byte(
+  #             Memory.Slice.drop_first_byte(Memory.Slice.drop_first_byte(slice))
+  #           )
+  #         ),
+  #         rest
+  #       )
+  #   end
+  # end
+
   defwp parse_create_table_sql(ptr: I32.UnsafePointer, len: I32), I32,
     count: I32,
     input: Memory.Slice do

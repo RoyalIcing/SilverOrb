@@ -123,6 +123,31 @@ defmodule SQLite3FormatTest do
     s = read_binary.(column_ptr, column_size)
     dbg(s)
 
+    assert {:ok,
+            [
+              table_column_count,
+              col_1_str_ptr,
+              col_1_str_size,
+              col_1_flags,
+              col_2_str_ptr,
+              col_2_str_size,
+              col_2_flags,
+              col_3_str_ptr,
+              col_3_str_size,
+              col_3_flags
+            ]} =
+             Wasmex.call_function(pid, "parse_table_schema_columns_3", [
+               column_ptr,
+               column_size
+             ])
+
+    assert table_column_count == 3
+    dbg(col_1_flags)
+    assert "iso_3166_code" = read_binary.(col_1_str_ptr, col_1_str_size)
+    # assert 1 = col_1_flags
+    assert "name_en" = read_binary.(col_2_str_ptr, col_2_str_size)
+    assert "currency" = read_binary.(col_3_str_ptr, col_3_str_size)
+
     dbg(cell_count)
     dbg(cell_offset)
     dbg(rowid)
