@@ -191,8 +191,10 @@ defmodule SQLite3FormatTest do
 
     assert table_column_count == 3
     dbg(col_1_flags)
+    dbg(col_2_flags)
+    dbg(col_3_flags)
     assert "iso_3166_code" = read_binary.(col_1_str_ptr, col_1_str_size)
-    assert 1 = col_1_flags
+    assert 17 = col_1_flags
     assert "name_en" = read_binary.(col_2_str_ptr, col_2_str_size)
     assert "currency" = read_binary.(col_3_str_ptr, col_3_str_size)
 

@@ -372,14 +372,15 @@ defmodule SilverOrb.SQLite3Format do
           end
 
         parse_state === const(:column_type) ->
+          Log.puts("column_type")
+          Log.u32(char)
+
           if char === ?) do
             parse_state = const(:after_columns)
           end
 
-          Log.u32(char)
-
           if char === ?, do
-            Log.four_cc("comm")
+            Log.puts("comma")
             parse_state = const(:between_columns)
           end
 
@@ -389,9 +390,32 @@ defmodule SilverOrb.SQLite3Format do
               Log.four_cc("COL1")
               Log.u32(parsing_column)
               Log.u32(col_1_flags)
+
+              if col_1_flags do
+                # FIXME: The loop will increment the slice, so rewind one character.
+                seek_slice =
+                  Memory.Slice.from(
+                    Memory.Slice.get_byte_offset(seek_slice) - 1,
+                    Memory.Slice.get_byte_length(seek_slice) + 1
+                  )
+              end
+
               # col_1_flags = 1
             end
-          else
+
+            # char = Memory.load!(I32.U8, Memory.Slice.get_byte_offset(seek_slice))
+
+            # if char === ?) do
+            #   parse_state = const(:after_columns)
+            # end
+
+            # if char === ?, do
+            #   Log.puts("comma")
+            #   parse_state = const(:between_columns)
+            # end
+          end
+
+          if parse_state !== const(:column_type) do
             parsing_column = parsing_column + 1
             table_column_count = table_column_count + 1
           end
