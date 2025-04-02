@@ -11,7 +11,55 @@ defmodule SQLite3FormatTest do
   end
 
   setup %{wat: wat} do
-    {:ok, pid} = Wasmex.start_link(%{bytes: wat})
+    imports = %{
+      log: %{
+        u32:
+          {:fn, [:i32], [],
+           fn _context, n ->
+             IO.puts(["u32 ", IO.ANSI.format([:yellow, "#{n}"])])
+           end},
+        u64:
+          {:fn, [:i64], [],
+           fn _context, n ->
+             IO.puts("u64 #{n}")
+           end},
+        utf8:
+          {:fn, [:i32, :i32], [],
+           fn context, ptr, size ->
+             string = Wasmex.Memory.read_binary(context.caller, context.memory, ptr, size)
+             #  IO.puts(string)
+             IO.inspect(string, binaries: :as_strings, syntax_colors: [string: :green])
+             #  IO.inspect(string, base: :hex)
+           end},
+        bytes:
+          {:fn, [:i32, :i32], [],
+           fn context, ptr, size ->
+             bytes = Wasmex.Memory.read_binary(context.caller, context.memory, ptr, size)
+             IO.inspect(bytes, binaries: :as_binaries, base: :hex, limit: 1000)
+           end},
+        putc:
+          {:fn, [:i32], [],
+           fn _context, utf8char ->
+             IO.write(IO.ANSI.format([:cyan, [utf8char]]))
+           end},
+        four_cc:
+          {:fn, [:i32], [],
+           fn _context, four_cc ->
+             <<a, b, c, d>> = <<four_cc::32>>
+             s = <<d, c, b, a>>
+
+             IO.puts([
+               "4cc ",
+               IO.ANSI.format([
+                 :yellow,
+                 [?', s, ?', " ", inspect(s, strings: :as_binaries, base: :hex)]
+               ])
+             ])
+           end}
+      }
+    }
+
+    {:ok, pid} = Wasmex.start_link(%{bytes: wat, imports: imports})
     {:ok, memory} = Wasmex.memory(pid)
     {:ok, store} = Wasmex.store(pid)
 
@@ -144,7 +192,7 @@ defmodule SQLite3FormatTest do
     assert table_column_count == 3
     dbg(col_1_flags)
     assert "iso_3166_code" = read_binary.(col_1_str_ptr, col_1_str_size)
-    # assert 1 = col_1_flags
+    assert 1 = col_1_flags
     assert "name_en" = read_binary.(col_2_str_ptr, col_2_str_size)
     assert "currency" = read_binary.(col_3_str_ptr, col_3_str_size)
 

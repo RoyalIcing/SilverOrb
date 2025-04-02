@@ -23,6 +23,46 @@ defmodule SilverOrb.SQLite3Format do
 
   Memory.pages(100)
 
+  defmodule Log do
+    use Orb.Import, name: :log
+
+    defw(u32(u: I32))
+    defw(u64(u: I64))
+    defw(utf8(ptr: I32.UnsafePointer, size: I32))
+    defw(bytes(ptr: I32.UnsafePointer, size: I32))
+
+    def four_cc(binary) when is_binary(binary) and byte_size(binary) == 4 do
+      four_cc(I32.from_4_byte_ascii(binary))
+    end
+
+    defw(four_cc(four_cc: I32))
+
+    defw(putc(utf8char: I32))
+
+    def puts(<<utf8char::utf8, rest::binary>>) do
+      Orb.snippet do
+        putc(utf8char)
+        puts(rest)
+      end
+    end
+
+    def puts("") do
+      putc(?\n)
+    end
+
+    def utf8_slice(slice) do
+      utf8(Memory.Slice.get_byte_offset(slice), Memory.Slice.get_byte_length(slice))
+    end
+
+    def str(str) do
+      utf8_slice(Str.to_slice(str))
+    end
+  end
+
+  # if Mix.env() == :test do
+  Orb.Import.register(Log)
+  # end
+
   # defw read(source: [ptr: I32.UnsafePointer, len: I32]) do
   # end
 
@@ -271,10 +311,12 @@ defmodule SilverOrb.SQLite3Format do
        col_3_flags: I32 do
     seek_ptr = ptr
 
-    assert!(Memory.load!(I32, seek_ptr) === I32.from_4_byte_ascii("CREA"))
-    assert!(Memory.load!(I32, seek_ptr + 4) === I32.from_4_byte_ascii("TE T"))
-    assert!(Memory.load!(I32, seek_ptr + 8) === I32.from_4_byte_ascii("ABLE"))
-    assert!(Memory.load!(I32.U8, seek_ptr + 12) === 0x20)
+    must! do
+      Memory.load!(I32, seek_ptr) === I32.from_4_byte_ascii("CREA")
+      Memory.load!(I32, seek_ptr + 4) === I32.from_4_byte_ascii("TE T")
+      Memory.load!(I32, seek_ptr + 8) === I32.from_4_byte_ascii("ABLE")
+      Memory.load!(I32.U8, seek_ptr + 12) === 0x20
+    end
 
     seek_slice = Memory.Slice.from(seek_ptr + 13, len)
 
@@ -334,13 +376,19 @@ defmodule SilverOrb.SQLite3Format do
             parse_state = const(:after_columns)
           end
 
+          Log.u32(char)
+
           if char === ?, do
+            Log.four_cc("comm")
             parse_state = const(:between_columns)
           end
 
           if parse_state === const(:column_type) do
             if parsing_column === 1 do
               {seek_slice, col_1_flags} = parse_column_type(seek_slice)
+              Log.four_cc("COL1")
+              Log.u32(parsing_column)
+              Log.u32(col_1_flags)
               # col_1_flags = 1
             end
           else
@@ -354,11 +402,8 @@ defmodule SilverOrb.SQLite3Format do
     # assert! Memory.Slice.read!(mut!(input), I32) === I32.from_4_byte_ascii("TE T")
     # assert! Memory.Slice.read!(mut!(input), I32) === I32.from_4_byte_ascii("ABLE")
 
-    loop char <- seek_slice do
-      if char === ?, or char === ?) do
-        table_column_count = table_column_count + 1
-      end
-    end
+    Log.u32(99)
+    Log.u32(col_1_flags)
 
     [
       table_column_count: table_column_count,
@@ -377,11 +422,30 @@ defmodule SilverOrb.SQLite3Format do
   end
 
   defwp parse_column_type(slice: Memory.Slice), {Memory.Slice, I32}, flags: I32 do
+    # Log.u32(const("parse_column_type").memory_offset)
+    # Log.utf8(const("parse_column_type").memory_offset, byte_size("parse_column_type"))
+    # Log.utf8_slice(Str.to_slice("parse_column_type"))
+    Log.utf8_slice(slice)
+    # Log.str("\n")
+    Log.u32(Memory.load!(I32.U8, Memory.Slice.get_byte_offset(slice)))
+    Log.u32(Memory.Slice.get_byte_length(slice) >= 5)
+
+    Log.u32(
+      Memory.load!(I32, Memory.Slice.get_byte_offset(slice)) === I32.from_4_byte_ascii("TEXT")
+    )
+
+    Log.u32(Memory.load!(I32.U8, Memory.Slice.get_byte_offset(slice) + 4) === 0x20)
+
+    # flags = Memory.load!(I32, Memory.Slice.get_byte_offset(slice))
+    # flags = Memory.Slice.get_byte_length(slice)
+
     if Memory.Slice.get_byte_length(slice) >= 5 &&&
          Memory.load!(I32, Memory.Slice.get_byte_offset(slice)) ===
            I32.from_4_byte_ascii("TEXT") &&&
          Memory.load!(I32.U8, Memory.Slice.get_byte_offset(slice) + 4) === 0x20 do
       flags = column_affinity_text()
+      Log.puts("flags:")
+      Log.u32(flags)
 
       slice =
         Memory.Slice.from(
@@ -391,29 +455,50 @@ defmodule SilverOrb.SQLite3Format do
 
       {slice, flags} = parse_column_primary_key(slice, flags)
       {slice, flags} = parse_column_not_null(slice, flags)
+
+      Log.puts("flags:")
+      Log.u32(flags)
     else
       flags = 0
     end
+
+    Log.u32(flags)
 
     {slice, flags}
   end
 
   defwp parse_column_primary_key(slice: Memory.Slice, flags: I32), {Memory.Slice, I32} do
+    Log.u32(13)
+    Log.puts("parse_column_primary_key")
+    Log.utf8_slice(slice)
+    Log.u32(Memory.Slice.get_byte_length(slice))
+    Log.four_cc(Memory.load!(I32, Memory.Slice.get_byte_offset(slice)))
+    Log.four_cc(Memory.load!(I32, Memory.Slice.get_byte_offset(slice) + 4))
+    Log.four_cc(Memory.load!(I32, Memory.Slice.get_byte_offset(slice) + 8))
+
     if Memory.Slice.get_byte_length(slice) >= 12 &&&
          Memory.load!(I32, Memory.Slice.get_byte_offset(slice)) ===
            I32.from_4_byte_ascii("PRIM") &&&
          Memory.load!(I32, Memory.Slice.get_byte_offset(slice) + 4) ===
            I32.from_4_byte_ascii("ARY ") &&&
-         Memory.load!(I32, Memory.Slice.get_byte_offset(slice) + 8) ===
-           I32.from_4_byte_ascii("KEY ") do
+         (Memory.load!(I32, Memory.Slice.get_byte_offset(slice) + 8) &&&
+            I32.from_4_byte_ascii("KEY\0")) === I32.from_4_byte_ascii("KEY\0") do
       flags = flags ||| column_primary_key()
+
+      Log.puts("before:")
+      Log.u32(Memory.Slice.get_byte_offset(slice))
 
       slice =
         Memory.Slice.from(
-          Memory.Slice.get_byte_offset(slice) + 12,
-          Memory.Slice.get_byte_length(slice) - 12
+          Memory.Slice.get_byte_offset(slice) + 11,
+          Memory.Slice.get_byte_length(slice) - 11
         )
+
+      Log.puts("after:")
+      Log.u32(Memory.Slice.get_byte_offset(slice))
     end
+
+    Log.utf8_slice(slice)
 
     {slice, flags}
   end
