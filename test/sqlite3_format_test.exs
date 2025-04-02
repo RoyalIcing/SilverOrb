@@ -163,6 +163,17 @@ defmodule SQLite3FormatTest do
                0
              ])
 
+    assert {:ok, values} = Wasmex.call_function(pid, "read_record", [payload_ptr, payload_size])
+    dbg(values)
+    record_result = SilverOrb.SQLite3Format.TableSchemaReadRecordResult.from_values(values)
+    dbg(record_result)
+
+    IO.puts(read_binary.(record_result[:col_1_ptr], record_result[:col_1_size]))
+    IO.puts(read_binary.(record_result[:col_2_ptr], record_result[:col_2_size]))
+    IO.puts(read_binary.(record_result[:col_3_ptr], record_result[:col_3_size]))
+    IO.puts(read_binary.(record_result[:col_4_ptr], record_result[:col_4_size]))
+    IO.puts(read_binary.(record_result[:col_5_ptr], record_result[:col_5_size]))
+
     assert {:ok, [header_bytes, column_ptr, column_size, table_column_count]} =
              Wasmex.call_function(pid, "read_table_schema", [
                payload_ptr,

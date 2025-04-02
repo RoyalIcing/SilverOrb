@@ -163,59 +163,102 @@ defmodule SilverOrb.SQLite3Format do
     }
   end
 
+  defmodule TableSchemaReadRecordResult do
+    def fields() do
+      [
+        header_bytes: I32,
+        col_1_ptr: I32.UnsafePointer,
+        col_1_size: I32,
+        col_2_ptr: I32.UnsafePointer,
+        col_2_size: I32,
+        col_3_ptr: I32.UnsafePointer,
+        col_3_size: I32,
+        col_4_ptr: I32.UnsafePointer,
+        col_4_size: I32,
+        col_5_ptr: I32.UnsafePointer,
+        col_5_size: I32
+      ]
+    end
+
+    def from_values(values) do
+      Enum.zip_with(fields(), values, fn {key, _type}, value ->
+        {key, value}
+      end)
+    end
+
+    with @behaviour Orb.CustomType do
+      @impl Orb.CustomType
+      def wasm_type() do
+        fields()
+        |> Keyword.values()
+        |> List.to_tuple()
+      end
+    end
+  end
+
   defw read_record(ptr: I32.UnsafePointer, len: I32),
-       {I32, I32.UnsafePointer, I32},
+       TableSchemaReadRecordResult,
        seek_ptr: I32,
        header_bytes: I32,
-       column1: I32,
-       column1_ptr: I32.UnsafePointer,
-       column1_size: I32,
-       column2: I32,
-       column2_ptr: I32.UnsafePointer,
-       column2_size: I32,
-       column3: I32,
-       column3_ptr: I32.UnsafePointer,
-       column3_size: I32,
-       column4: I32,
-       column4_ptr: I32.UnsafePointer,
-       column4_size: I32,
-       column5: I32,
-       column5_ptr: I32.UnsafePointer,
-       column5_size: I32 do
+       col_1: I32,
+       col_1_ptr: I32.UnsafePointer,
+       col_1_size: I32,
+       col_2: I32,
+       col_2_ptr: I32.UnsafePointer,
+       col_2_size: I32,
+       col_3: I32,
+       col_3_ptr: I32.UnsafePointer,
+       col_3_size: I32,
+       col_4: I32,
+       col_4_ptr: I32.UnsafePointer,
+       col_4_size: I32,
+       col_5: I32,
+       col_5_ptr: I32.UnsafePointer,
+       col_5_size: I32 do
     seek_ptr = ptr
     header_bytes = parse_varint(mut!(seek_ptr))
-    column1 = parse_varint(mut!(seek_ptr))
-    column2 = parse_varint(mut!(seek_ptr))
-    column3 = parse_varint(mut!(seek_ptr))
-    column4 = parse_varint(mut!(seek_ptr))
-    column5 = parse_varint(mut!(seek_ptr))
+    col_1 = parse_varint(mut!(seek_ptr))
+    col_2 = parse_varint(mut!(seek_ptr))
+    col_3 = parse_varint(mut!(seek_ptr))
+    col_4 = parse_varint(mut!(seek_ptr))
+    col_5 = parse_varint(mut!(seek_ptr))
 
     seek_ptr = ptr + header_bytes
 
-    column1_ptr = seek_ptr
-    column1_size = I32.div_u(column1 - 13, 2)
-    seek_ptr = seek_ptr + column1_size
+    col_1_ptr = seek_ptr
+    col_1_size = I32.div_u(col_1 - 13, 2)
+    seek_ptr = seek_ptr + col_1_size
 
-    column2_ptr = seek_ptr
-    column2_size = I32.div_u(column2 - 13, 2)
-    seek_ptr = seek_ptr + column2_size
+    col_2_ptr = seek_ptr
+    col_2_size = I32.div_u(col_2 - 13, 2)
+    seek_ptr = seek_ptr + col_2_size
 
-    column3_ptr = seek_ptr
-    column3_size = I32.div_u(column3 - 13, 2)
-    seek_ptr = seek_ptr + column3_size
+    col_3_ptr = seek_ptr
+    col_3_size = I32.div_u(col_3 - 13, 2)
+    seek_ptr = seek_ptr + col_3_size
 
-    column4_ptr = seek_ptr
+    col_4_ptr = seek_ptr
     seek_ptr = seek_ptr + 1
 
-    column5_ptr = seek_ptr
-    column5_size = I32.div_u(column5 - 13, 2)
-    seek_ptr = seek_ptr + column5_size
+    col_5_ptr = seek_ptr
+    col_5_size = I32.div_u(col_5 - 13, 2)
+    seek_ptr = seek_ptr + col_5_size
 
-    {
-      header_bytes,
-      column5_ptr,
-      column5_size
-    }
+    [
+      header_bytes: header_bytes,
+      col_1_ptr: col_1_ptr,
+      col_1_size: col_1_size,
+      col_2_ptr: col_2_ptr,
+      col_2_size: col_2_size,
+      col_3_ptr: col_3_ptr,
+      col_3_size: col_3_size,
+      col_4_ptr: col_3_ptr,
+      col_4_size: col_3_size,
+      col_5_ptr: col_3_ptr,
+      col_5_size: col_3_size
+    ]
+    |> Keyword.values()
+    |> List.to_tuple()
   end
 
   # defwi decode_text_size(column: I32) :: I32, do: I32.div_u(column - 13, 2)
@@ -451,9 +494,6 @@ defmodule SilverOrb.SQLite3Format do
     # assert! Memory.Slice.read!(mut!(input), I32) === I32.from_4_byte_ascii("CREA")
     # assert! Memory.Slice.read!(mut!(input), I32) === I32.from_4_byte_ascii("TE T")
     # assert! Memory.Slice.read!(mut!(input), I32) === I32.from_4_byte_ascii("ABLE")
-
-    Log.u32(99)
-    Log.u32(col_1_flags)
 
     [
       table_column_count: table_column_count,
