@@ -16,7 +16,10 @@ defmodule SQLite3FormatTest do
         u32:
           {:fn, [:i32], [],
            fn _context, n ->
-             IO.puts(["u32 ", IO.ANSI.format([:yellow, "#{n}"])])
+             IO.puts([
+               IO.ANSI.format([:italic, "u32 "]),
+               IO.ANSI.format([:yellow, "#{n}"])
+             ])
            end},
         u64:
           {:fn, [:i64], [],
@@ -49,7 +52,7 @@ defmodule SQLite3FormatTest do
              s = <<d, c, b, a>>
 
              IO.puts([
-               "4cc ",
+               IO.ANSI.format([:italic, "4cc "]),
                IO.ANSI.format([
                  :yellow,
                  [?', s, ?', " ", inspect(s, strings: :as_binaries, base: :hex)]
@@ -196,7 +199,9 @@ defmodule SQLite3FormatTest do
     assert "iso_3166_code" = read_binary.(col_1_str_ptr, col_1_str_size)
     assert 17 = col_1_flags
     assert "name_en" = read_binary.(col_2_str_ptr, col_2_str_size)
+    assert 9 = col_2_flags
     assert "currency" = read_binary.(col_3_str_ptr, col_3_str_size)
+    assert 9 = col_3_flags
 
     dbg(cell_count)
     dbg(cell_offset)
