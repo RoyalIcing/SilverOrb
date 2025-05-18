@@ -1,5 +1,6 @@
 defmodule SilverOrb.URI do
   use Orb
+  use SilverOrb.Log
 
   Memory.pages(1)
 
@@ -68,6 +69,8 @@ defmodule SilverOrb.URI do
 
   defw parse(input: Str), URIParseResult,
     input_slice: Memory.Slice,
+    i: I32,
+    char: I32.U8,
     flags: I32,
     scheme_ptr: I32.UnsafePointer,
     scheme_size: I32 do
@@ -86,11 +89,23 @@ defmodule SilverOrb.URI do
 
     input_slice = Memory.Slice.from(input[:ptr], input[:size])
 
-    loop char <- input_slice do
+    # loop char <- input_slice do
+    loop EachChar do
+      char = Memory.load!(I32.U8, input[:ptr] + i)
+      # Log.u32(char)
+      # Log.u32(char === ?:)
+      # Log.putc(char)
+
       if char === ?: do
         flags = flags ||| 0x1
         scheme_ptr = input[:ptr]
-        scheme_size = input[:size] - 1
+        scheme_size = i
+      end
+
+      i = i + 1
+
+      if i < input[:size] do
+        EachChar.continue()
       end
     end
 
