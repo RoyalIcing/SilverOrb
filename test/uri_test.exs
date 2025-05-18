@@ -14,19 +14,23 @@ defmodule URITest do
 
   @tag input: "mailto:"
   test "parse mailto:", %{result: result} do
-    assert result.flags == 0x1
+    assert result.flags == SilverOrb.URI.parse_flags([:scheme])
     assert result.scheme == {0x100, 6}
   end
 
   @tag input: "http:"
   test "parse http:", %{result: result} do
-    assert result.flags == 0x1
+    assert result.flags == SilverOrb.URI.parse_flags([:scheme])
     assert result.scheme == {0x100, 4}
   end
 
   @tag input: "tel:+1-816-555-1212"
-  test "parse tel:+1-816-555-1212", %{result: result} do
-    assert result.flags == 0x1
+  test "parse tel:+1-816-555-1212", %{result: result, read_binary: read_binary} do
+    assert result.flags == SilverOrb.URI.parse_flags([:scheme, :path])
     assert result.scheme == {0x100, 3}
+    assert result.path == {0x104, 15}
+
+    {path_ptr, path_size} = result.path
+    assert "+1-816-555-1212" = read_binary.(path_ptr, path_size)
   end
 end
