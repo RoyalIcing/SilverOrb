@@ -91,10 +91,21 @@ defmodule SilverOrb.URI do
     i: I32,
     char: I32.U8,
     flags: I32,
-    scheme_i: I32.UnsafePointer,
+    scheme_i: I32,
     scheme_size: I32,
+    authority_i: I32,
+    userinfo_i: I32,
+    userinfo_size: I32,
+    host_i: I32,
+    host_size: I32,
+    port_i: I32,
+    port_size: I32,
     path_i: I32,
-    path_size: I32 do
+    path_size: I32,
+    query_i: I32,
+    query_size: I32,
+    fragment_i: I32,
+    fragment_size: I32 do
     # URIParseResult.from_values([
     #   0,
     #   {0, 0},
@@ -108,6 +119,8 @@ defmodule SilverOrb.URI do
     # |> Keyword.values()
     # |> List.to_tuple()
 
+    state = const(:initial)
+
     loop EachChar do
       char = Memory.load!(I32.U8, input[:ptr] + i)
       # Log.u32(char)
@@ -115,7 +128,7 @@ defmodule SilverOrb.URI do
       # Log.putc(char)
 
       Control.block State do
-        if char === ?: do
+        if state === const(:initial) &&& char === ?: do
           flags = flags ||| flag(:scheme)
           scheme_i = 0
           scheme_size = i
@@ -128,7 +141,8 @@ defmodule SilverOrb.URI do
             char = Memory.load!(I32.U8, input[:ptr] + i + 1)
 
             if char === ?/ do
-              state = const(:authority)
+              i = i + 1
+              state = const(:authority_start)
               State.break()
             end
           end
@@ -140,37 +154,111 @@ defmodule SilverOrb.URI do
           State.break()
         end
 
-        if state === const(:userinfo) &&& char === ?@ do
-          flags = flags ||| flag(:host)
-          state = const(:host)
+        if state === const(:authority_start) do
+          if char === ?/ do
+            flags = flags ||| flag(:path)
+            state = const(:path)
+            path_i = i
+          else
+            state = const(:authority)
+            authority_i = i
+          end
+
           State.break()
         end
 
-        if state === const(:host) &&& char === ?: do
-          flags = flags ||| flag(:port)
-          state = const(:port)
+        if state === const(:authority) do
+          if host_i do
+            flags = flags ||| flag(:host)
+          end
+
+          # Log.puts("authority state")
+          # Log.putc(char)
+          # Log.putc(0x20)
+          # Log.u32(char)
+
+          cond result: nil do
+            char === ?@ ->
+              userinfo_i = authority_i
+              userinfo_size = i - authority_i
+              authority_i = i + 1
+              flags = flags ||| flag(:userinfo)
+
+            # state = const(:host)
+
+            char === ?: ->
+              host_i = authority_i
+              host_size = i - authority_i
+              port_i = i + 1
+              flags = flags ||| flag(:port)
+              state = const(:port)
+
+            char === ?/ or char === ?? ->
+              if char === ?/ do
+                path_i = i
+                flags = flags ||| flag(:path)
+                state = const(:path)
+              end
+
+              if char === ?? do
+                query_i = i
+                flags = flags ||| flag(:query)
+                state = const(:query)
+              end
+
+              if userinfo_i === 0 do
+                host_i = authority_i
+                host_size = i - authority_i
+                flags = flags ||| flag(:host)
+              end
+
+              if port_i do
+                port_size = i - port_i
+              end
+
+            true ->
+              Orb.InstructionSequence.empty()
+          end
+
           State.break()
         end
+
+        # if state === const(:host) &&& char === ?: do
+        #   flags = flags ||| flag(:port)
+        #   state = const(:port)
+        #   State.break()
+        # end
 
         if state === const(:port) &&& char === ?/ do
+          if port_i do
+            port_size = i - port_i
+          end
+
+          path_i = i
           flags = flags ||| flag(:path)
           state = const(:path)
           State.break()
         end
 
         if state === const(:path) &&& char === ?? do
+          path_size = i - path_i
+          query_i = i + 1
           flags = flags ||| flag(:query)
           state = const(:query)
           State.break()
         end
 
         if state === const(:path) &&& char === ?# do
+          path_size = i - path_i
+          fragment_i = i + 1
           flags = flags ||| flag(:fragment)
           state = const(:fragment)
           State.break()
         end
 
         if state === const(:query) &&& char === ?# do
+          query_size = i - query_i
+          fragment_i = i + 1
           flags = flags ||| flag(:fragment)
           state = const(:fragment)
           State.break()
@@ -184,30 +272,44 @@ defmodule SilverOrb.URI do
       end
     end
 
-    Log.u32(state)
-    Log.u32(const(:path))
-    Log.u32(path_i)
+    # Log.u32(state)
+    # Log.u32(const(:path))
+    # Log.u32(path_i)
+
+    if state === const(:authority) do
+      flags = flags ||| flag(:host)
+      host_i = authority_i
+      host_size = i - authority_i
+    end
 
     if state === const(:path) do
       path_size = i - path_i
+    end
+
+    if state === const(:query) do
+      query_size = i - query_i
+    end
+
+    if state === const(:fragment) do
+      fragment_size = i - fragment_i
     end
 
     {
       flags,
       input[:ptr] + scheme_i,
       scheme_size,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
+      input[:ptr] + userinfo_i,
+      userinfo_size,
+      input[:ptr] + host_i,
+      host_size,
+      input[:ptr] + port_i,
+      port_size,
       input[:ptr] + path_i,
       path_size,
-      0,
-      0,
-      0,
-      0
+      input[:ptr] + query_i,
+      query_size,
+      input[:ptr] + fragment_i,
+      fragment_size
     }
   end
 end

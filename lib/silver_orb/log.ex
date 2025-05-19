@@ -1,6 +1,8 @@
 defmodule SilverOrb.Log do
   use Orb.Import, name: :log
 
+  require Orb
+
   defmacro __using__(_opts) do
     quote do
       alias unquote(__MODULE__)
