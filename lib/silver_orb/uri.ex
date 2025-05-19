@@ -190,7 +190,11 @@ defmodule SilverOrb.URI do
               host_i = authority_i
               host_size = i - authority_i
               port_i = i + 1
-              flags = flags ||| flag(:port)
+
+              flags =
+                flags ||| flag(:port) |||
+                  if(host_size, result: I32, do: i32(flag(:host)), else: i32(0))
+
               state = const(:port)
 
             char === ?/ or char === ?? ->

@@ -109,6 +109,17 @@ defmodule URITest do
     result: result,
     read_binary: read_binary
   } do
+    assert result.flags ==
+             SilverOrb.URI.parse_flags([
+               :scheme,
+               :userinfo,
+               :host,
+               :path,
+               :port,
+               :query,
+               :fragment
+             ])
+
     assert "https" = read_binary.(elem(result.scheme, 0), elem(result.scheme, 1))
     assert "user" = read_binary.(elem(result.userinfo, 0), elem(result.userinfo, 1))
     assert "example.com" = read_binary.(elem(result.host, 0), elem(result.host, 1))
