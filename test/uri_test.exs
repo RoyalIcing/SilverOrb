@@ -10,11 +10,61 @@ defmodule URITest do
     write_binary: write_binary,
     read_binary: read_binary
   } do
+    import Bitwise
+
     write_binary.(0x100, input)
 
     assert {:ok, values} = call_function.("parse", [0x100, byte_size(input)])
     result = Result.from_values(values)
     expected_result = URI.parse(input)
+
+    case expected_result.scheme do
+      nil ->
+        assert 0 === band(result.flags, SilverOrb.URI.parse_flags([:scheme]))
+
+      scheme when is_binary(scheme) ->
+        assert 0 !== band(result.flags, SilverOrb.URI.parse_flags([:scheme]))
+    end
+
+    case expected_result.userinfo do
+      nil ->
+        assert 0 === band(result.flags, SilverOrb.URI.parse_flags([:userinfo]))
+
+      userinfo when is_binary(userinfo) ->
+        assert 0 !== band(result.flags, SilverOrb.URI.parse_flags([:userinfo]))
+    end
+
+    case expected_result.host do
+      host when host in [nil, ""] ->
+        assert 0 === band(result.flags, SilverOrb.URI.parse_flags([:host]))
+
+      host when is_binary(host) ->
+        assert 0 !== band(result.flags, SilverOrb.URI.parse_flags([:host]))
+    end
+
+    case expected_result.path do
+      nil ->
+        assert 0 === band(result.flags, SilverOrb.URI.parse_flags([:path]))
+
+      path when is_binary(path) ->
+        assert 0 !== band(result.flags, SilverOrb.URI.parse_flags([:path]))
+    end
+
+    case expected_result.query do
+      nil ->
+        assert 0 === band(result.flags, SilverOrb.URI.parse_flags([:query]))
+
+      query when is_binary(query) ->
+        assert 0 !== band(result.flags, SilverOrb.URI.parse_flags([:query]))
+    end
+
+    case expected_result.fragment do
+      nil ->
+        assert 0 === band(result.flags, SilverOrb.URI.parse_flags([:fragment]))
+
+      fragment when is_binary(fragment) ->
+        assert 0 !== band(result.flags, SilverOrb.URI.parse_flags([:fragment]))
+    end
 
     assert (expected_result.scheme || "") ===
              read_binary.(elem(result.scheme, 0), elem(result.scheme, 1))
