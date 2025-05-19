@@ -128,6 +128,67 @@ defmodule URITest do
     assert "beagles" = read_binary.(elem(result.fragment, 0), elem(result.fragment, 1))
   end
 
+  @tag input: "http://example.com:"
+  test "http://example.com:", %{result: result, read_binary: read_binary} do
+    assert "" = read_binary.(elem(result.port, 0), elem(result.port, 1))
+  end
+
+  @tag input: "http://example.com:65535/"
+  test "http://example.com:65535/", %{result: result, read_binary: read_binary} do
+    assert "65535" = read_binary.(elem(result.port, 0), elem(result.port, 1))
+  end
+
+  @tag input: "example.com/path"
+  test "example.com/path", %{result: result, read_binary: read_binary} do
+    assert result.flags == SilverOrb.URI.parse_flags([:path])
+    assert result.path == {0x100, 16}
+
+    assert "" = read_binary.(elem(result.scheme, 0), elem(result.scheme, 1))
+    assert "" = read_binary.(elem(result.host, 0), elem(result.host, 1))
+    assert "example.com/path" = read_binary.(elem(result.path, 0), elem(result.path, 1))
+  end
+
+  @tag input: "/example.com/path"
+  test "/example.com/path", %{result: result, read_binary: read_binary} do
+    assert result.flags == SilverOrb.URI.parse_flags([:path])
+    assert result.path == {0x100, 17}
+
+    assert "" = read_binary.(elem(result.scheme, 0), elem(result.scheme, 1))
+    assert "" = read_binary.(elem(result.host, 0), elem(result.host, 1))
+    assert "/example.com/path" = read_binary.(elem(result.path, 0), elem(result.path, 1))
+  end
+
+  @tag input: "//example.com/path"
+  test "//example.com/path", %{result: result, read_binary: read_binary} do
+    assert result.flags == SilverOrb.URI.parse_flags([:host, :path])
+    assert result.host == {0x102, 11}
+    assert result.path == {0x10D, 5}
+
+    assert "" = read_binary.(elem(result.scheme, 0), elem(result.scheme, 1))
+    assert "example.com" = read_binary.(elem(result.host, 0), elem(result.host, 1))
+    assert "/path" = read_binary.(elem(result.path, 0), elem(result.path, 1))
+  end
+
+  @tag input: "///example.com/path"
+  test "///example.com/path", %{result: result, read_binary: read_binary} do
+    assert result.flags == SilverOrb.URI.parse_flags([:path])
+    assert result.path == {0x102, 17}
+
+    assert "" = read_binary.(elem(result.scheme, 0), elem(result.scheme, 1))
+    assert "" = read_binary.(elem(result.host, 0), elem(result.host, 1))
+    assert "/example.com/path" = read_binary.(elem(result.path, 0), elem(result.path, 1))
+  end
+
+  @tag input: "////example.com/path"
+  test "////example.com/path", %{result: result, read_binary: read_binary} do
+    assert result.flags == SilverOrb.URI.parse_flags([:path])
+    assert result.path == {0x102, 18}
+
+    assert "" = read_binary.(elem(result.scheme, 0), elem(result.scheme, 1))
+    assert "" = read_binary.(elem(result.host, 0), elem(result.host, 1))
+    assert "//example.com/path" = read_binary.(elem(result.path, 0), elem(result.path, 1))
+  end
+
   @tag input: "http://example.com"
   test "http://example.com", do: :ok
 
@@ -157,16 +218,6 @@ defmodule URITest do
 
   @tag input: "urn:isbn:0451450523"
   test "urn:isbn:0451450523", do: :ok
-
-  @tag input: "http://example.com:65535/"
-  test "http://example.com:65535/", %{result: result, read_binary: read_binary} do
-    assert "65535" = read_binary.(elem(result.port, 0), elem(result.port, 1))
-  end
-
-  @tag input: "http://example.com:"
-  test "http://example.com:", %{result: result, read_binary: read_binary} do
-    assert "" = read_binary.(elem(result.port, 0), elem(result.port, 1))
-  end
 
   # @tag input: "http://user:pass@example.com"
   # test "http://user:pass@example.com", do: :ok

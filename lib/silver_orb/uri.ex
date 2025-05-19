@@ -128,12 +128,20 @@ defmodule SilverOrb.URI do
       # Log.putc(char)
 
       Control.block State do
-        if state === const(:initial) &&& char === ?: do
-          flags = flags ||| flag(:scheme)
-          scheme_i = 0
-          scheme_size = i
-          state = const(:hier_part)
-          State.break()
+        if state === const(:initial) do
+          if char === ?: do
+            flags = flags ||| flag(:scheme)
+            scheme_i = 0
+            scheme_size = i
+            state = const(:hier_part)
+            State.break()
+          end
+
+          if char === ?/ &&& i === 0 do
+            state = const(:hier_part)
+          else
+            State.break()
+          end
         end
 
         if state === const(:hier_part) do
@@ -278,7 +286,13 @@ defmodule SilverOrb.URI do
 
     # Log.u32(state)
     # Log.u32(const(:path))
-    # Log.u32(path_i)
+    # Log.u32(path_i)\
+
+    if state === const(:initial) do
+      flags = flags ||| flag(:path)
+      path_i = 0
+      path_size = i
+    end
 
     if state === const(:authority) do
       flags = flags ||| flag(:host)
