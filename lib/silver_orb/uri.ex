@@ -1,5 +1,4 @@
 defmodule SilverOrb.URI do
-  alias ElixirLS.LanguageServer.Providers.Completion.Reducers.Bitstring
   use Orb
   use SilverOrb.Log
 
@@ -320,6 +319,111 @@ defmodule SilverOrb.URI do
       query_size,
       input[:ptr] + fragment_i,
       fragment_size
+    }
+  end
+
+  defmodule ParseQueryPairResult do
+    @fields [
+      key: Str,
+      value: Str,
+      rest: Str
+    ]
+
+    defstruct @fields
+    def fields(), do: @fields
+
+    def from_values([
+          key_ptr,
+          key_size,
+          value_ptr,
+          value_size,
+          rest_ptr,
+          rest_size
+        ]) do
+      %__MODULE__{
+        key: {key_ptr, key_size},
+        value: {value_ptr, value_size},
+        rest: {rest_ptr, rest_size}
+      }
+    end
+
+    def from_values(values) do
+      struct!(
+        __MODULE__,
+        Enum.zip_with(fields(), values, fn {key, _type}, value ->
+          {key, value}
+        end)
+      )
+    end
+
+    with @behaviour Orb.CustomType do
+      @impl Orb.CustomType
+      def wasm_type() do
+        fields()
+        |> Keyword.values()
+        |> List.to_tuple()
+      end
+    end
+  end
+
+  defw parse_query_pair(input: Str), ParseQueryPairResult,
+    state: I32,
+    i: I32,
+    char: I32.U8,
+    key_i: I32,
+    key_size: I32,
+    value_i: I32,
+    value_size: I32,
+    rest_i: I32,
+    rest_size: I32 do
+    state = const(:key)
+    key_i = i
+
+    Control.block Done do
+      loop EachChar do
+        char = Memory.load!(I32.U8, input[:ptr] + i)
+
+        Control.block State do
+          if state === const(:key) do
+            if char === ?= do
+              key_size = i - key_i
+              state = const(:value)
+              value_i = i + 1
+              State.break()
+            end
+          end
+
+          if state === const(:value) do
+            if char === ?& do
+              value_size = i - value_i
+              rest_i = i + 1
+              rest_size = input[:size] - rest_i
+              Done.break()
+            end
+          end
+        end
+
+        i = i + 1
+
+        if i < input[:size] do
+          EachChar.continue()
+        end
+      end
+
+      if state === const(:value) do
+        value_size = i - value_i
+        rest_i = i
+        rest_size = input[:size] - rest_i
+      end
+    end
+
+    {
+      input[:ptr] + key_i,
+      key_size,
+      input[:ptr] + value_i,
+      value_size,
+      input[:ptr] + rest_i,
+      rest_size
     }
   end
 end
