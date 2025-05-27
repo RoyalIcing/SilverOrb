@@ -1,6 +1,9 @@
 defmodule SilverOrb.UTF8 do
   use Orb
 
+  # Research: https://github.com/microsoft/edit/blob/main/src/unicode/utf8.rs
+  # Research: https://github.com/microsoft/edit/tree/main/tools/grapheme-table-gen
+
   # Used for testing
   Memory.pages(2)
 
