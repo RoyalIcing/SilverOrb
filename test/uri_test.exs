@@ -3,6 +3,8 @@ defmodule URITest do
 
   @moduletag wat: Orb.to_wat(SilverOrb.URI)
 
+  # IO.puts(Orb.to_wat(SilverOrb.URI))
+
   describe "parse" do
     alias SilverOrb.URI.URIParseResult, as: Result
 
@@ -285,13 +287,13 @@ defmodule URITest do
       read_binary: read_binary
     } do
       input = "q=dogs&sort=cutest"
-      expected_result = URI.decode_query(input)
 
       write_binary.(0x100, input)
 
       assert {:ok, values} = call_function.("parse_query_pair", [0x100, byte_size(input)])
       result = SilverOrb.URI.ParseQueryPairResult.from_values(values)
 
+      assert result.flags == 1
       assert result.key == {0x100, 1}
       assert result.value == {0x102, 4}
       assert result.rest == {0x107, 11}
@@ -303,12 +305,88 @@ defmodule URITest do
       assert {:ok, values} = call_function.("parse_query_pair", Tuple.to_list(result.rest))
       result = SilverOrb.URI.ParseQueryPairResult.from_values(values)
 
+      assert result.flags == 1
       assert result.key == {0x107, 4}
       assert result.value == {0x10C, 6}
       assert result.rest == {0x112, 0}
 
       assert "sort" = read_binary.(elem(result.key, 0), elem(result.key, 1))
       assert "cutest" = read_binary.(elem(result.value, 0), elem(result.value, 1))
+      assert "" = read_binary.(elem(result.rest, 0), elem(result.rest, 1))
+    end
+
+    test "=abc", %{
+      call_function: call_function,
+      write_binary: write_binary,
+      read_binary: read_binary
+    } do
+      input = "=abc"
+      write_binary.(0x100, input)
+
+      assert {:ok, values} = call_function.("parse_query_pair", [0x100, byte_size(input)])
+      result = SilverOrb.URI.ParseQueryPairResult.from_values(values)
+
+      assert result.flags == 1
+      assert result.key == {0x100, 0}
+      assert result.value == {0x101, 3}
+      assert result.rest == {0x104, 0}
+
+      assert "" = read_binary.(elem(result.key, 0), elem(result.key, 1))
+      assert "abc" = read_binary.(elem(result.value, 0), elem(result.value, 1))
+      assert "" = read_binary.(elem(result.rest, 0), elem(result.rest, 1))
+    end
+
+    test "a=&b=", %{
+      call_function: call_function,
+      write_binary: write_binary,
+      read_binary: read_binary
+    } do
+      input = "a=&b="
+      write_binary.(0x100, input)
+
+      assert {:ok, values} = call_function.("parse_query_pair", [0x100, byte_size(input)])
+      result = SilverOrb.URI.ParseQueryPairResult.from_values(values)
+
+      assert result.flags == 1
+      assert result.key == {0x100, 1}
+      assert result.value == {0x102, 0}
+      assert result.rest == {0x103, 2}
+
+      assert "a" = read_binary.(elem(result.key, 0), elem(result.key, 1))
+      assert "" = read_binary.(elem(result.value, 0), elem(result.value, 1))
+      assert "b=" = read_binary.(elem(result.rest, 0), elem(result.rest, 1))
+
+      assert {:ok, values} = call_function.("parse_query_pair", Tuple.to_list(result.rest))
+      result = SilverOrb.URI.ParseQueryPairResult.from_values(values)
+
+      assert result.flags == 1
+      assert result.key == {0x103, 1}
+      assert result.value == {0x105, 0}
+      assert result.rest == {0x105, 0}
+
+      assert "b" = read_binary.(elem(result.key, 0), elem(result.key, 1))
+      assert "" = read_binary.(elem(result.value, 0), elem(result.value, 1))
+      assert "" = read_binary.(elem(result.rest, 0), elem(result.rest, 1))
+    end
+
+    test "empty string", %{
+      call_function: call_function,
+      write_binary: write_binary,
+      read_binary: read_binary
+    } do
+      input = ""
+      write_binary.(0x100, input)
+
+      assert {:ok, values} = call_function.("parse_query_pair", [0x100, byte_size(input)])
+      result = SilverOrb.URI.ParseQueryPairResult.from_values(values)
+
+      assert result.flags == 0
+      assert result.key == {0x100, 0}
+      assert result.value == {0x100, 0}
+      assert result.rest == {0x100, 0}
+
+      assert "" = read_binary.(elem(result.key, 0), elem(result.key, 1))
+      assert "" = read_binary.(elem(result.value, 0), elem(result.value, 1))
       assert "" = read_binary.(elem(result.rest, 0), elem(result.rest, 1))
     end
   end

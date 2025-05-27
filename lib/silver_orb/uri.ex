@@ -324,6 +324,7 @@ defmodule SilverOrb.URI do
 
   defmodule ParseQueryPairResult do
     @fields [
+      flags: I32,
       key: Str,
       value: Str,
       rest: Str
@@ -333,6 +334,7 @@ defmodule SilverOrb.URI do
     def fields(), do: @fields
 
     def from_values([
+          flags,
           key_ptr,
           key_size,
           value_ptr,
@@ -341,6 +343,7 @@ defmodule SilverOrb.URI do
           rest_size
         ]) do
       %__MODULE__{
+        flags: flags,
         key: {key_ptr, key_size},
         value: {value_ptr, value_size},
         rest: {rest_ptr, rest_size}
@@ -368,6 +371,7 @@ defmodule SilverOrb.URI do
 
   defw parse_query_pair(input: Str), ParseQueryPairResult,
     state: I32,
+    flags: I32,
     i: I32,
     char: I32.U8,
     key_i: I32,
@@ -380,6 +384,12 @@ defmodule SilverOrb.URI do
     key_i = i
 
     Control.block Done do
+      if input[:size] === 0 do
+        Done.break()
+      else
+        flags = 1
+      end
+
       loop EachChar do
         char = Memory.load!(I32.U8, input[:ptr] + i)
 
@@ -418,6 +428,7 @@ defmodule SilverOrb.URI do
     end
 
     {
+      flags,
       input[:ptr] + key_i,
       key_size,
       input[:ptr] + value_i,
