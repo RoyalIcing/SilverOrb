@@ -34,7 +34,7 @@ defmodule SilverOrb.MixProject do
       {:orb, "~> 0.2.1"},
       # {:orb, path: "../orb", override: true},
       # {:orb_wasmtime, "~> 0.1.17", only: :test},
-      {:wasmex, "~> 0.9.2", only: :test},
+      {:wasmex, "~> 0.11.2", only: :test},
       {:ex_doc, "~> 0.31.2", only: :dev, runtime: false}
     ]
   end
