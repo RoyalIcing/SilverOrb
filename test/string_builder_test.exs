@@ -166,19 +166,7 @@ defmodule StringBuilderTest do
 
   setup_all do
     wat = Orb.to_wat(MultiStepForm)
-    # wasm = Orb.to_wasm(MultiStepForm)
-    # IO.puts(wat)
-
-    path_wat = Path.join(__DIR__, "multi_step_form.wat")
-    path_wasm = Path.join(__DIR__, "multi_step_form.wasm")
-    File.write!(path_wat, wat)
-    System.cmd("wat2wasm", [path_wat], cd: __DIR__)
-    wasm = File.read!(path_wasm)
-
-    on_exit(fn ->
-      File.rm!(path_wat)
-      File.rm!(path_wasm)
-    end)
+    {:ok, wasm} = Wasmex.Wat.to_wasm(wat)
 
     %{wat: wat, wasm: wasm}
   end

@@ -244,21 +244,7 @@ defmodule PodcastFeedTest do
 
     # Get WAT and convert to WASM
     wat = Orb.to_wat(SilverOrb.PodcastFeed)
-    File.write!(path_wat, wat)
-
-    # Convert WAT to WASM using wat2wasm
-    System.cmd("wat2wasm", [path_wat, "-o", path_wasm])
-    System.cmd("wasm-opt", ["--enable-multivalue", path_wasm, "-o", path_opt_wasm, "-O"])
-
-    %{size: size} = File.stat!(path_wasm)
-    assert size > 0
-
-    %{size: size} = File.stat!(path_opt_wasm)
-    assert size > 0
-
-    {wat_text, 0} = System.cmd("wasm2wat", [path_wasm])
-    File.write!(path_wat, wat_text)
-    {opt_wat, 0} = System.cmd("wasm2wat", [path_opt_wasm])
-    File.write!(path_opt_wat, opt_wat)
+    {:ok, wasm} = Wasmex.Wat.to_wasm(wat)
+    assert byte_size(wasm) > 0
   end
 end
