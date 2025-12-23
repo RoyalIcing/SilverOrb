@@ -9,12 +9,17 @@ defmodule SilverOrb.StringBuilder do
     use Orb
     use SilverOrb.StringBuilder
 
+    arena Output, pages: 1 do
+      use SilverOrb.StringBuilder
+      # Now we have Output.build!/1 macro
+    end
+
     defwp daytime?(hour: I32), I32 do
       hour >= 6 &&& hour <= 19
     end
 
-    defw render(hour: I32), StringBuilder do
-      StringBuilder.build! do
+    defw render(hour: I32), Output.MemorySlice do
+      Output.build! do
         "<h1>"
 
         if daytime?(hour) do

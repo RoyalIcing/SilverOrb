@@ -20,6 +20,7 @@ defmodule SilverOrb.SQLite3Format do
 
   # See also: https://programmersstone.blog/posts/scrappy-parsing/
   # https://mrsuh.com/articles/2024/sqlite-index-visualization-structure/
+  # SQLite File Format Viewer: https://sqlite-internal.pages.dev/
 
   Memory.pages(100)
 
@@ -131,7 +132,10 @@ defmodule SilverOrb.SQLite3Format do
   defw read_btree_table_leaf_header(ptr: I32.UnsafePointer, len: I32), {I32, I32},
     cell_count: I32,
     cell_offset: I32 do
-    assert!(Memory.load!(I32.U8, ptr) === 0x0D)
+    must! do
+      Memory.load!(I32.U8, ptr) === 0x0D
+    end
+
     cell_count = load_u16_be!(ptr + 3)
     cell_offset = load_u16_be!(ptr + 5)
     {cell_count, cell_offset}
@@ -140,6 +144,7 @@ defmodule SilverOrb.SQLite3Format do
   defw read_btree_table_leaf_cell(
          ptr: I32.UnsafePointer,
          len: I32,
+         page_size: I32,
          page_index: I32,
          cell_index: I32
        ),

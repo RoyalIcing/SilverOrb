@@ -141,6 +141,7 @@ defmodule SQLite3FormatTest do
     ptr = 0x100
     len = byte_size(db_bytes)
 
+    # Write the database to memory
     write_binary.(ptr, db_bytes)
 
     assert Wasmex.call_function(pid, "read_header", [ptr, len]) ===
@@ -155,24 +156,33 @@ defmodule SQLite3FormatTest do
     assert cell_count == 2
     assert cell_offset == 3875
 
+    cell_size = page_size - cell_offset
+    c1 = read_binary.(ptr + cell_offset, cell_size)
+    dbg(c1)
+
     assert {:ok, [rowid, payload_ptr, payload_size]} =
              Wasmex.call_function(pid, "read_btree_table_leaf_cell", [
                ptr,
                len,
+               page_size,
                0,
                0
              ])
 
-    assert {:ok, values} = Wasmex.call_function(pid, "read_record", [payload_ptr, payload_size])
+    assert 1 = rowid
+
+    assert {:ok, values} =
+             Wasmex.call_function(pid, "read_record", [ptr + cell_offset, cell_size])
+
     dbg(values)
     record_result = SilverOrb.SQLite3Format.TableSchemaReadRecordResult.from_values(values)
     dbg(record_result)
 
-    IO.puts(read_binary.(record_result[:col_1_ptr], record_result[:col_1_size]))
-    IO.puts(read_binary.(record_result[:col_2_ptr], record_result[:col_2_size]))
-    IO.puts(read_binary.(record_result[:col_3_ptr], record_result[:col_3_size]))
-    IO.puts(read_binary.(record_result[:col_4_ptr], record_result[:col_4_size]))
-    IO.puts(read_binary.(record_result[:col_5_ptr], record_result[:col_5_size]))
+    # IO.puts(read_binary.(record_result[:col_1_ptr], record_result[:col_1_size]))
+    # IO.puts(read_binary.(record_result[:col_2_ptr], record_result[:col_2_size]))
+    # IO.puts(read_binary.(record_result[:col_3_ptr], record_result[:col_3_size]))
+    # IO.puts(read_binary.(record_result[:col_4_ptr], record_result[:col_4_size]))
+    # IO.puts(read_binary.(record_result[:col_5_ptr], record_result[:col_5_size]))
 
     assert {:ok, [header_bytes, column_ptr, column_size, table_column_count]} =
              Wasmex.call_function(pid, "read_table_schema", [
